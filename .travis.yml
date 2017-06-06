@@ -1,0 +1,22 @@
+branches:
+  only:
+    - master
+
+before_install:
+script: make
+language: cpp
+compiler: g++
+
+env:
+  global:
+   - secure: "mzd3FGdnR6h/HtlGa7LeIlr0ISZwePUHplLk4zSsFcndKG8xFW12pozg1IyiJ8/fbATnQ168R5tVFiu8VwnAdkTAaTJk2kDzg09mooTXhCfFqczJf8G9iuLNjMMS4bEGCasnRD0ZSRMi3Aw82S164bFLlacvT4e6YzjsApa/5tBRpddEiXx2E2fxSSDN2s0oYs8FvwTFrytaD28FhsfV85G5mJSjyRjnH0X9rj1imReOdnBtlGh9AIXX5bwY9uu3sa7TyJ8ljNUwqn3DNaUktsHaXyiVtjuQj6cOOws8TNLlnSBQg+IgDYGmY89NpzEbrCflkjhpzq65/uHS3oEKJWD5yU7RLs5UijniTQVi/IrUoDy+EvbRhtDbdBi9ZHZLqeLgYfQD4Sk30Py3FOW1ORSGgkzpXZTpcQdqM65PtgFTel62t7M+sulpoQ25DE7IhEkUfUcDNuIy4bJI907ugocne5WAPXooNhjgASe6aDdnbzdlK8ulp1NJglo/iEgmVV+Qa9khzNn69Wp6h4SV9nnWz7surTiUdecCqlLO2/DQmHSMNXhNdfELFWdnOyWkLO8EMWtEWZ331Tv42/A8GJrtiZ9owJEy4/Ey3ZG37o20e3GLHvSRbo+fVoMe7zuaFF8+6sduEXR2e+5PhHHgnLFwJZwJuBEfgCr6UL1Gs4w="
+
+addons:
+  coverity_scan:
+    project:
+      name: "LipkeGu/BINL-Server"
+      description: "Build submitted via Travis CI"
+    notification_email: lipkegu@gmail.com
+    build_command_prepend: "make"
+    build_command: "make"
+    branch_pattern: master
