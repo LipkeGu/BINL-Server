@@ -24,7 +24,7 @@ Server.o: BINL-Server/src/Server.cpp
 	$(CXX) $(CXXFLAGS) -c BINL-Server/src/Server.cpp
 
 Functions.o: BINL-Server/src/Functions.cpp
-	$(CXX) $(CXXFLAGS) -c sBINL-Server/rc/Functions.cpp
+	$(CXX) $(CXXFLAGS) -c BINL-Server/src/Functions.cpp
 
 FileSystem.o: BINL-Server/src/FileSystem.cpp
 	$(CXX) $(CXXFLAGS) -c BINL-Server/src/FileSystem.cpp
