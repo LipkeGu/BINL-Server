@@ -23,15 +23,11 @@ public:
 
 	size_t GetLength();
 	void SetLength(size_t length);
-
 	size_t GetPosition();
 	void SetPosition(size_t position);
-
 	void Clear();
 	void Write(const void* data, size_t length);
-
 	char* GetBuffer();
-
 	void SetType(ServerType type);
 	ServerType GetType();
 	void TFTP_Error(uint8_t errcode, string* message);
@@ -40,8 +36,6 @@ public:
 	string HTTP_GetFileName();
 	bool TFTP_HasOption(const char* option);
 	size_t TFTP_OptionOffset(const char* option);
-
-
 	bool TFTP_isOPCode(uint8_t opcode);
 private:
 	EventLog* logger;

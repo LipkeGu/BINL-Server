@@ -21,7 +21,6 @@ using namespace std;
 
 Connection::Connection(EventLog *pLogger, ServerType type, uint32_t IPAddress)
 {
-
 	this->Logger = pLogger;
 	this->serverType = type;
 	this->remotesocklen = sizeof(this->remote);
@@ -50,7 +49,9 @@ int Connection::CreateUDPSocket(int Broadcast, int ReUseAddr, uint16_t port)
 			{
 				this->Logger->LogBuffer = new char[1024];
 				ClearBuffer(this->Logger->LogBuffer, 1024);
+				
 				sprintf(this->Logger->LogBuffer, "Failed to set SO_REUSEADDR on socket: %s", strerror(errno));
+				
 				this->Logger->Report(Error, this->Logger->LogBuffer);
 				delete this->Logger->LogBuffer;
 
@@ -64,7 +65,9 @@ int Connection::CreateUDPSocket(int Broadcast, int ReUseAddr, uint16_t port)
 
 				this->Logger->LogBuffer = new char[1024];
 				ClearBuffer(this->Logger->LogBuffer, 1024);
+				
 				sprintf(this->Logger->LogBuffer, "Failed to set SO_BROADCAST on socket: %s", strerror(errno));
+				
 				this->Logger->Report(Error, this->Logger->LogBuffer);
 				delete this->Logger->LogBuffer;
 
@@ -83,7 +86,9 @@ int Connection::CreateUDPSocket(int Broadcast, int ReUseAddr, uint16_t port)
 			{
 				this->Logger->LogBuffer = new char[1024];
 				ClearBuffer(this->Logger->LogBuffer, 1024);
+				
 				sprintf(this->Logger->LogBuffer, "Failed to set SO_KEEPALIVE on socket: %s", strerror(errno));
+				
 				this->Logger->Report(Error, this->Logger->LogBuffer);
 				delete this->Logger->LogBuffer;
 
@@ -151,8 +156,6 @@ int Connection::Listen()
 		{
 			string addr = inet_ntoa(this->remote.sin_addr);
 
-			// Resize the Packet to the size of received bytes...
-
 			packet->SetLength(this->SocketState);
 			tmpClient = clients->find(addr);
 
@@ -173,7 +176,6 @@ int Connection::Listen()
 					
 					sprintf(hwaddr, "%02X:%02X:%02X:%02X:%02X:%02X", hwadr[0],
 						hwadr[1], hwadr[2], hwadr[3], hwadr[4], hwadr[5]);
-
 #ifdef WITH_TFTP
 				}
 				else
@@ -219,9 +221,7 @@ int Connection::Listen()
 				break;
 #endif
 			case HTTP:
-
 				this->Handle_HTTP_Request(clients->find(addr)->second, packet, this->serverType);
-
 				clients->erase(addr);
 				break;
 			default:
@@ -232,6 +232,7 @@ int Connection::Listen()
 			addr.clear();
 		}
 	}
+	
 	return this->SocketState;
 }
 
@@ -272,7 +273,6 @@ Connection::~Connection()
 {
 	this->clients->clear();
 	delete this->clients;
-
 #ifdef _WIN32
 	WSACleanup();
 #endif
@@ -387,6 +387,7 @@ void Connection::Handle_RRQ_Request(Client* client, Packet* packet, ServerType t
 
 				ClearBuffer(winsize, 6);
 				extString(&packet->GetBuffer()[packet->TFTP_OptionOffset("windowsize")], 6, winsize);
+				
 				client->SetWindowSize(atoi(winsize));
 				delete[] winsize;
 
@@ -397,8 +398,8 @@ void Connection::Handle_RRQ_Request(Client* client, Packet* packet, ServerType t
 					ClearBuffer(msftwin, 6);
 
 					extString(&packet->GetBuffer()[packet->TFTP_OptionOffset("msftwindow")], 6, msftwin);
+					
 					client->SetMSFTWindow(27182);
-
 					delete[] msftwin;
 				}
 				else
@@ -509,7 +510,6 @@ void Connection::Handle_DHCP_Request(Client* client, Packet* packet, ServerType 
 
 	client->Data->GetBuffer()[client->Data->GetPosition()] = \
 		(uint8_t)GetDHCPMessageType(client, packet, type);
-
 	client->Data->SetPosition(1);
 
 	/* DHCP Server Id */
@@ -534,8 +534,8 @@ void Connection::Handle_DHCP_Request(Client* client, Packet* packet, ServerType 
 	delete vendorIdent;
 
 	/* DHCP Client GUID */
-	uint32_t uuid_offset = 0;
-	uuid_offset = GetOptionOffset(packet, 97);
+	uint32_t uuid_offset = GetOptionOffset(packet, 97);
+
 	if (uuid_offset != 0)
 	{
 		client->Data->Write(&packet->GetBuffer()[uuid_offset], 19);
@@ -585,8 +585,6 @@ void Connection::Handle_HTTP_Request(Client* client, Packet* packet, ServerType 
 {
 	client->file = new FileSystem("http/" + packet->HTTP_GetFileName(), FileRead);
 
-	cout << packet->HTTP_GetFileName() << endl;
-
 	if (client->file->Exist())
 	{
 		client->http_description = "OK";
@@ -607,23 +605,22 @@ void Connection::Handle_HTTP_Request(Client* client, Packet* packet, ServerType 
 
 			client->Data = new Packet(this->Logger, client->GetType(), ss.str().size() + 1);
 			client->Data->Write(ss.str().c_str(), ss.str().size());
+			
 			this->SocketState = Send(client);
-
 			close(*client->GetSocket());
+			
 			delete client->Data;
 			delete[] tmp;
 		}
 		else
 		{
-			// Bilder und andere Formate müssen in 16384 bytes große Teile gelesen und zerlegt werden! 
 			client->SetBytesToRead(client->file->Length());
+			
 			size_t bs = 0;
 			size_t chunk = 16384;
 
 			do
 			{
-				// Die größe für den letzten Teil der Datei berechnen...
-
 				chunk = (16384 < (client->GetBytesToRead() - client->GetBytesRead())) ?
 					(size_t)16384 : (size_t)(client->GetBytesToRead() - client->GetBytesRead());
 				

@@ -122,6 +122,7 @@ private:
 	uint16_t blocksize;
 
 	long bytesread;
+	
 	long bytesToRead;
 	TFTP_State tftp_state;
 #endif

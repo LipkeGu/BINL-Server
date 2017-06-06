@@ -221,7 +221,6 @@ string Client::GetBootfile(CLIENT_ARCH arch)
 	}
 	else
 	{
-
 		this->bootfile = DHCP_BOOTFILE;
 		this->bcdfile = "";
 	}
@@ -257,7 +256,6 @@ uint16_t Client::GetWindowSize()
 
 void Client::SetWindowSize(uint16_t window)
 {
-
 	this->windowsize = window;
 }
 
@@ -318,6 +316,7 @@ bool Client::GetACK(Packet* packet)
 	if (packet->GetLength() > 4 && this->AllowVariableWindowSize)
 	{
 		uint16_t w = 0;
+		
 		memcpy(&w, &packet->GetBuffer()[4], 1);
 
 		if (this->GetWindowSize() != w)

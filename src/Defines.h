@@ -99,7 +99,6 @@ enum Packet_OPCode
 {
 	BOOTREQUEST = 1,
 	BOOTREPLY = 2,
-
 	RISREQUEST = 81,
 	RISREPLY = 82
 };

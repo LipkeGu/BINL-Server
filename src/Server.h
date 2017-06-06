@@ -31,4 +31,3 @@ private:
 	uint32_t ServerIP;
 	ServerType servertype;
 };
-

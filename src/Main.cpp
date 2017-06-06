@@ -23,7 +23,6 @@ void* DHCP_Thread(void* threadArgs)
 	_dhcp = new Server(67, DHCP);
 	
 	delete _dhcp;
-
 	return 0;
 }
 #ifdef WITH_TFTP

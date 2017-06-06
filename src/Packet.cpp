@@ -19,7 +19,6 @@ Packet::Packet(EventLog* pLogger, ServerType type, size_t bufferlen)
 {
 	this->Packetlen = bufferlen;
 	this->buffer = new char[this->Packetlen];
-
 	ClearBuffer(this->buffer, bufferlen);
 
 	this->logger = pLogger;
@@ -70,7 +69,6 @@ void Packet::Write(const void* data, size_t length)
 	if ((this->GetPosition() + length) < this->GetLength())
 	{
 		memcpy(&this->buffer[this->GetPosition()], data, length);
-
 		this->SetPosition(length);
 	}
 }
@@ -102,7 +100,6 @@ void Packet::TFTP_Data(uint16_t block)
 	this->GetBuffer()[1] = (uint8_t)3;
 	this->GetBuffer()[2] = (block & 0xFF00) >> 8;
 	this->GetBuffer()[3] = (block & 0x00FF);
-
 	this->SetPosition(4);
 }
 
@@ -177,7 +174,7 @@ size_t Packet::TFTP_OptionOffset(const char* option)
 
 string Packet::HTTP_GetFileName()
 {
-	std::stringstream p;
+	stringstream p;
 	p << this->GetBuffer();
 
 	size_t start = 0;
@@ -195,9 +192,7 @@ string Packet::HTTP_GetFileName()
 	res = res.substr(0, end);
 	
 	if (res == "/")
-	{
 		return "index.html";
-	}
 	else
 	{
 		if (res.c_str()[0] == '/')

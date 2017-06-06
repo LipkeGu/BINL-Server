@@ -62,7 +62,6 @@ Server::Server(uint16_t port, ServerType type)
 	}
 
 	this->Srvsocket = new Connection(this->Logger, this->servertype, this->ServerIP);
-	
 	retval = this->Srvsocket->CreateUDPSocket(bcast, 1, port);
 	
 	if (retval == SOCKET_ERROR)
