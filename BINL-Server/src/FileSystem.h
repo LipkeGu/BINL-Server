@@ -34,11 +34,11 @@ private:
 	string ResolvePath(string path);
 	bool Open();
 	bool isOpen;
-	string ctype;
+	string* ctype;
 
 	long filesize;
 
 	FILE* file;
-	string filename;
+	string* filename;
 	FileOpenMode mode;
 };

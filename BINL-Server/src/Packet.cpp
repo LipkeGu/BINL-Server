@@ -15,13 +15,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Includes.h"
 
-Packet::Packet(EventLog* pLogger, ServerType type, size_t bufferlen)
+Packet::Packet(ServerType type, size_t bufferlen)
 {
 	this->Packetlen = bufferlen;
 	this->buffer = new char[this->Packetlen];
 	ClearBuffer(this->buffer, bufferlen);
 
-	this->logger = pLogger;
 	this->SetPosition(0);
 	this->SetType(type);
 }
@@ -105,42 +104,47 @@ void Packet::TFTP_Data(uint16_t block)
 
 void Packet::TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint16_t msftwindow)
 {
-	stringstream str_bs;
-	stringstream str_ts;
-	stringstream str_ws;
-	stringstream str_mw;
-
+	stringstream* ss = new stringstream;
+	
 	this->GetBuffer()[1] = (uint8_t)6;
 	this->SetPosition(2);
 
-	str_bs << blksize;
+	*ss << blksize;
 	this->Write("blksize", sizeof("blksize"));
-	this->Write(str_bs.str().c_str(), str_bs.str().size());
+	this->Write(ss->str().c_str(), ss->str().size());
+	delete ss;
 
 	this->GetBuffer()[this->GetPosition()] = 0;
 	this->SetPosition(1);
 
-	str_ts << tsize;
+	ss = new stringstream;
+	*ss << tsize;
 	this->Write("tsize", sizeof("tsize"));
-	this->Write(str_ts.str().c_str(), strlen(str_ts.str().c_str()));
+	this->Write(ss->str().c_str(), ss->str().size());
+	delete ss;
 
 	if (windosize > 1)
 	{
 		this->GetBuffer()[this->GetPosition()] = 0;
 		this->SetPosition(1);
 
-		str_ws << windosize;
+		ss = new stringstream;
+		*ss << windosize;
 		this->Write("windowsize", sizeof("windowsize"));
-		this->Write(str_ws.str().c_str(), str_ws.str().size());
+		this->Write(ss->str().c_str(), ss->str().size());
+		delete ss;
+
 #ifdef VARWIN
 		if (msftwindow > 1)
 		{
 			this->GetBuffer()[this->GetPosition()] = 0;
 			this->SetPosition(1);
 
-			str_mw << msftwindow;
+			ss = new stringstream;
+			*ss << msftwindow;
 			this->Write("msftwindow", sizeof("msftwindow"));
-			this->Write(str_mw.str().c_str(), str_mw.str().size());
+			this->Write(ss->str().c_str(), ss->str().size());
+			delete ss;
 		}
 #endif
 	}
@@ -180,19 +184,21 @@ bool Packet::TFTP_isOPCode(uint8_t opcode)
 
 string Packet::HTTP_GetFileName()
 {
-	stringstream p;
-	p << this->GetBuffer();
+	stringstream* p = new stringstream;
+	*p << this->GetBuffer();
 
 	size_t start = 0;
 	size_t end = 0;
 
 	string res = "/";
 
-	start = p.str().find_first_of("T ");
+	start = p->str().find_first_of("T ");
 
 	start += strlen("T ");
 
-	res = p.str().substr(start);
+	res = p->str().substr(start);
+	delete p;
+
 	end = res.find_first_of(" HTT");
 
 	res = res.substr(0, end);

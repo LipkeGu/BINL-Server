@@ -135,17 +135,17 @@ bool IsWDSPacket(Packet* packet, size_t offset)
 string iso_8859_1_to_utf8(string &str)
 {
 	string strOut;
-	uint8_t ch = 0;
+	uint8_t* ch = new uint8_t(0);
 
 	for (string::iterator it = str.begin(); it != str.end(); ++it)
 	{
-		ch = *it;
-		if (ch < 0x80)
-			strOut.push_back(ch);
+		*ch = *it;
+		if (*ch < 0x80)
+			strOut.push_back(*ch);
 		else
 		{
-			strOut.push_back(0xc0 | ch >> 6);
-			strOut.push_back(0x80 | (ch & 0x3f));
+			strOut.push_back(0xc0 | *ch >> 6);
+			strOut.push_back(0x80 | (*ch & 0x3f));
 		}
 	}
 
@@ -191,148 +191,161 @@ void BuildWDSOptions(Client* client, ServerType type)
 	char* tmpbuffer = new char[4096];
 	ClearBuffer(tmpbuffer, 4096);
 
-	uint8_t offset = 2;
-	uint8_t length = 0;
-	uint8_t option = 0;
-	uint8_t DHCPend = 255;
-	uint8_t realsize = 0;
+	uint8_t* offset = new uint8_t(2);
+	uint8_t* length = new uint8_t(0);
+	uint8_t* option = new uint8_t(0);
+	uint8_t* DHCPend = new uint8_t(0xff);
+	uint8_t* realsize = new uint8_t(0);
 
 	if (client->GetNextAction() == REFERRAL && client->GetReferralServer() == 0)
 		client->SetNextAction(APPROVAL);
 
 	// Next Action
-	option = WDSBP_OPT_NEXT_ACTION;
-	length = (uint8_t)sizeof(uint8_t);
+	*option = WDSBP_OPT_NEXT_ACTION;
+	*length = (uint8_t)sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &option, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &length, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &client->NextAction, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &client->NextAction, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
 	// RequestID
-	option = WDSBP_OPT_REQUEST_ID;
-	length = (uint8_t)sizeof(uint32_t);
+	*option = WDSBP_OPT_REQUEST_ID;
+	*length = (uint8_t)sizeof(uint32_t);
 
-	memcpy(&tmpbuffer[offset], &option, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &length, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	uint32_t* reqid = new uint32_t(client->GetRequestID());
-	memcpy(&tmpbuffer[offset], &reqid, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
+	uint32_t* reqid = new uint32_t(BS32(client->GetRequestID()));
+	memcpy(&tmpbuffer[*offset], &reqid, sizeof(uint32_t));
+	*offset += sizeof(uint32_t);
 	delete reqid;
 
 	// Poll Interval
-	option = WDSBP_OPT_POLL_INTERVAL;
-	length = (uint8_t)sizeof(uint16_t);
+	*option = WDSBP_OPT_POLL_INTERVAL;
+	*length = (uint8_t)sizeof(uint16_t);
 
-	memcpy(&tmpbuffer[offset], &option, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &length, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &client->PollIntervall, sizeof(uint16_t));
-	offset += sizeof(uint16_t);
+	memcpy(&tmpbuffer[*offset], &client->PollIntervall, sizeof(uint16_t));
+	*offset += sizeof(uint16_t);
 
 	// Poll Retry Count
-	option = WDSBP_OPT_POLL_RETRY_COUNT;
-	length = (uint8_t)sizeof(uint16_t);
+	*option = WDSBP_OPT_POLL_RETRY_COUNT;
+	*length = (uint8_t)sizeof(uint16_t);
 
-	memcpy(&tmpbuffer[offset], &option, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &length, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &client->RetryCount, sizeof(uint16_t));
-	offset += sizeof(uint16_t);
+	memcpy(&tmpbuffer[*offset], &client->RetryCount, sizeof(uint16_t));
+	*offset += sizeof(uint16_t);
 
-	if (client->GetNextAction() == REFERRAL && client->GetReferralServer() != 0)
+	if (client->GetNextAction() == REFERRAL &&
+		client->GetReferralServer() != 0)
 	{
 		if (client->ServerSelection)
 		{
-			uint8_t* val = new uint8_t(1);
+
 			// Allow Server selection
-			option = WDSBP_OPT_ALLOW_SERVER_SELECTION;
-			length = (uint8_t)sizeof(uint8_t);
+			*option = WDSBP_OPT_ALLOW_SERVER_SELECTION;
+			*length = (uint8_t)sizeof(uint8_t);
 
-			memcpy(&tmpbuffer[offset], &option, sizeof(uint8_t));
-			offset += sizeof(uint8_t);
+			memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
+			*offset += sizeof(uint8_t);
 
-			memcpy(&tmpbuffer[offset], &length, sizeof(uint8_t));
-			offset += sizeof(uint8_t);
+			memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
+			*offset += sizeof(uint8_t);
 
-			memcpy(&tmpbuffer[offset], &val, sizeof(uint8_t));
-			offset += sizeof(uint8_t);
+			uint8_t* val = new uint8_t(1);
+
+			memcpy(&tmpbuffer[*offset], &val, sizeof(uint8_t));
+			*offset += sizeof(uint8_t);
 
 			delete val;
 		}
 
 		// Referal Server
-		option = WDSBP_OPT_REFERRAL_SERVER;
-		length = (uint8_t)sizeof(uint32_t);
+		*option = WDSBP_OPT_REFERRAL_SERVER;
+		*length = (uint8_t)sizeof(uint32_t);
 
-		memcpy(&tmpbuffer[offset], &option, sizeof(uint8_t));
-		offset += sizeof(uint8_t);
+		memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
+		*offset += sizeof(uint8_t);
 
-		memcpy(&tmpbuffer[offset], &length, sizeof(uint8_t));
-		offset += sizeof(uint8_t);
+		memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
+		*offset += sizeof(uint8_t);
 
 		uint32_t* ipaddr = new uint32_t(client->GetReferralServer());
 
-		memcpy(&tmpbuffer[offset], &ipaddr, sizeof(uint32_t));
-		offset += sizeof(uint32_t);
+		memcpy(&tmpbuffer[*offset], &ipaddr, sizeof(uint32_t));
+		*offset += sizeof(uint32_t);
+
 		delete ipaddr;
 	}
 
 	// Action Done
-	option = WDSBP_OPT_ACTION_DONE;
-	length = (uint8_t)sizeof(uint8_t);
+	*option = WDSBP_OPT_ACTION_DONE;
+	*length = (uint8_t)sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &option, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &length, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[offset], &client->ActionDone, sizeof(uint8_t));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &client->ActionDone, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
 
 	if (client->GetWDSMessage().size() != 0)
 	{
 		// Admin Message
-		option = WDSBP_OPT_MESSAGE;
-		length = (uint8_t)client->GetWDSMessage().size();
+		*option = WDSBP_OPT_MESSAGE;
+		*length = (uint8_t)client->GetWDSMessage().size();
 
-		memcpy(&tmpbuffer[offset], &option, sizeof(uint8_t));
-		offset += sizeof(uint8_t);
+		memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
+		*offset += sizeof(uint8_t);
 
-		memcpy(&tmpbuffer[offset], &length, sizeof(uint8_t));
-		offset += sizeof(uint8_t);
+		memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
+		*offset += sizeof(uint8_t);
 
-		strncpy(&tmpbuffer[offset], client->GetWDSMessage().c_str(), \
+		strncpy(&tmpbuffer[*offset], client->GetWDSMessage().c_str(), \
 			client->GetWDSMessage().size() + 1);
 
-		offset += (uint8_t)client->GetWDSMessage().size() + 1;
+		*offset += (uint8_t)client->GetWDSMessage().size() + 1;
 	}
 
-	memcpy(&tmpbuffer[offset], &DHCPend, sizeof(DHCPend));
-	offset += sizeof(uint8_t);
+	memcpy(&tmpbuffer[*offset], &DHCPend, sizeof(uint8_t));
+	*offset += sizeof(uint8_t);
 
 	tmpbuffer[0] = (uint8_t)250;
 
-	realsize = offset - 2;
+	*realsize = *offset - 2;
 	memcpy(&tmpbuffer[1], &realsize, sizeof(uint8_t));
 
-	client->Data->Write(tmpbuffer, offset);
+	client->Data->Write(tmpbuffer, *offset);
 
 	delete[] tmpbuffer;
+	delete[] offset;
+	delete[] realsize;
+	delete[] length;
+	delete[] option;
+	delete[] DHCPend;
+}
+
+void handle_args(int data_len, char* Data[])
+{
 }

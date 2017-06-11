@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 class Client
 {
 public:
-	Client(EventLog* pLogger, ServerType type, string id, char* hwaddr);
+	Client(ServerType type, string* id, char* hwaddr);
 	~Client();
 
 	void SetWDSMessage(string message);
@@ -93,7 +93,7 @@ public:
 	bool ServerSelection;
 	bool isWDSRequest;
 	Packet* Data;
-	string id;
+	string* id;
 	int http_status;
 	string http_description;
 
@@ -128,7 +128,6 @@ private:
 	long bytesToRead;
 	string bootfile;
 	string bcdfile;
-	EventLog* Logger;
 	ServerType type;
 	CLIENT_ARCH arch;
 	DHCPMsgTypes msgtype;

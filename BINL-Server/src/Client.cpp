@@ -3,10 +3,12 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
+
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
+
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -14,9 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define _CRT_SECURE_NO_WARNINGS
 #include "Includes.h"
 
-Client::Client(EventLog* pLogger, ServerType type, string id, char* hwaddr)
+Client::Client(ServerType type, string* id, char* hwaddr)
 {
-	this->Logger = pLogger;
 	this->SetType(type);
 	this->id = id;
 	this->http_description = "OK";
@@ -37,7 +38,7 @@ Client::Client(EventLog* pLogger, ServerType type, string id, char* hwaddr)
 		this->ActionDone = 1;
 		this->NextServer = 0;
 		this->referralIP = 0;
-		this->AdminMessage = "IP: " + this->id + "\tMAC: " + string(hwaddr);
+		this->AdminMessage = "IP: " + *this->id + "\tMAC: " + string(hwaddr);
 		this->requestid = 0;
 #ifdef WITH_TFTP
 	}
@@ -45,7 +46,7 @@ Client::Client(EventLog* pLogger, ServerType type, string id, char* hwaddr)
 	{
 		this->file = NULL;
 #ifdef VARWIN
-		this->AllowVariableWindowSize = true;
+		this->AllowVariableWindowSize = false;
 		this->msftwindow = 27182;
 #endif
 		this->block = 0;
@@ -93,7 +94,7 @@ uint32_t Client::GetReferralServer()
 
 void Client::SetRequestID(uint32_t id)
 {
-	this->requestid = htonl(id);
+	this->requestid = id;
 }
 
 uint32_t Client::GetRequestID()
@@ -211,7 +212,7 @@ string Client::GetBootfile(CLIENT_ARCH arch)
 			}
 			break;
 		case INTEL_EFI:
-			this->bootfile = "\\Boot\\efi\\bootmgfw.efi";
+			this->bootfile = "Boot\\efi\\bootmgfw.efi";
 			this->bcdfile = "Boot\\efi\\default.bcd";
 				break;
 		default:
@@ -290,22 +291,22 @@ uint16_t Client::GetBlock()
 
 bool Client::GetACK(Packet* packet)
 {
+	bool b = false;
 #ifdef VARWIN
 	if (packet->GetLength() > 4 && this->AllowVariableWindowSize)
-	{
-		uint16_t w = 0;
-		
-		memcpy(&w, &packet->GetBuffer()[4], 1);
-
-		if (this->GetWindowSize() != w)
-			this->SetWindowSize(w);
-	}
+		this->SetWindowSize(packet->GetBuffer()[4]);
 #endif
 
-	uint16_t x = BS16(this->GetBlock());
-
-	return (memcmp(&packet->GetBuffer()[2], &x, 2) == 0) ?
+	char* x = new char[2];
+	x[0] = (this->GetBlock() & 0xFF00) >> 8;
+	x[1] = (this->GetBlock() & 0x00FF);
+	
+	b = (memcmp(&packet->GetBuffer()[2], x, 2) == 0) ?
 		true : false;
+
+	delete x;
+	
+	return b;
 }
 #endif
 
@@ -337,5 +338,12 @@ Client::~Client()
 	if (this->s)
 		close(*this->s);
 
+	if (this->file)
+	{
+		this->file->Close();
+		delete this->file;
+	}
+
 	delete this->Data;
+	delete id;
 }

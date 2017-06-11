@@ -30,8 +30,8 @@ private:
 	string GetMsg();
 	void SetMsg(string message);
 
-	string context;
-	string message;
+	string* context;
+	string* message;
 	LogType logtype;
 
 	void WriteLine();

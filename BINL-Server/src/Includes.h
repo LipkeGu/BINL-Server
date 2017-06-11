@@ -29,6 +29,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <sstream>
 
+#ifdef _DEBUG
+	#ifndef DEBUG
+		#define DEBUG
+	#endif
+#endif
+
 #ifdef _WIN32
 #include <WinSock2.h>
 #include <Ws2tcpip.h>

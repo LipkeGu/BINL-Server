@@ -20,39 +20,41 @@ FileSystem::FileSystem(string filename, FileOpenMode mode)
 {
 	this->mode = mode;
 	this->filesize = 0;
-	this->filename = this->ResolvePath(filename);
+	this->filename = new string(this->ResolvePath(filename));
 	this->isOpen = this->Open();
-	this->ctype = "";
+	this->ctype = NULL;
 
 	if (this->isOpen)
 	{
-		if (this->filename.find(".css") != string::npos)
-			this->ctype = "text/css";
+		if (this->filename->find(".css") != string::npos)
+			this->ctype = new string("text/css");
 
-		if (this->filename.find(".htm") != string::npos)
-			this->ctype = "text/html";
+		if (this->filename->find(".htm") != string::npos)
+			this->ctype = new string("text/html");
 
-		if (this->filename.find(".js") != string::npos)
-			this->ctype = "text/javascript";
+		if (this->filename->find(".js") != string::npos)
+			this->ctype = new string("text/javascript");
 
-		if (this->filename.find(".png") != string::npos)
-			this->ctype = "image/png";
+		if (this->filename->find(".png") != string::npos)
+			this->ctype = new string("image/png");
 
-		if (this->filename.find(".jpg") != string::npos)
-			this->ctype = "image/jpg";
+		if (this->filename->find(".jpg") != string::npos)
+			this->ctype = new string("image/jpg");
 
-		if (this->filename.find(".txt") != string::npos)
-			this->ctype = "text/plain";
+		if (this->filename->find(".txt") != string::npos)
+			this->ctype = new string("text/plain");
 
-		if (this->filename.find(".bcd") != string::npos)
-			this->ctype = "application/octet-stream";
+		if (this->filename->find(".bcd") != string::npos)
+			this->ctype = new string("application/octet-stream");
 
-		if (this->filename.find(".wim") != string::npos)
-			this->ctype = "application/octet-stream";
+		if (this->filename->find(".wim") != string::npos)
+			this->ctype = new string("application/octet-stream");
 
-		if (this->filename.find(".sdi") != string::npos)
-			this->ctype = "application/octet-stream";
+		if (this->filename->find(".sdi") != string::npos)
+			this->ctype = new string("application/octet-stream");
 	}
+	else
+		this->ctype = new string("");
 }
 
 bool FileSystem::Exist()
@@ -62,7 +64,7 @@ bool FileSystem::Exist()
 
 string FileSystem::CType()
 {
-	return this->ctype;
+	return *this->ctype;
 }
 
 bool FileSystem::Open()
@@ -70,16 +72,16 @@ bool FileSystem::Open()
 	switch (this->mode)
 	{
 	case FileWrite:
-		this->file = fopen(this->filename.c_str(), "w");
+		this->file = fopen(this->filename->c_str(), "w");
 		break;
 	case FileRead:
-		this->file = fopen(this->filename.c_str(), "r");
+		this->file = fopen(this->filename->c_str(), "r");
 		break;
 	case FileReadBinary:
-		this->file = fopen(this->filename.c_str(), "rb");
+		this->file = fopen(this->filename->c_str(), "rb");
 		break;
 	case FileWriteBinary:
-		this->file = fopen(this->filename.c_str(), "wb");
+		this->file = fopen(this->filename->c_str(), "wb");
 		break;
 	default:
 		this->file = NULL;
@@ -156,7 +158,7 @@ long FileSystem::Length()
 
 string FileSystem::Name()
 {
-	return this->filename;
+	return *this->filename;
 }
 
 size_t FileSystem::Read(char* dest, size_t dest_offset, long seek, size_t length)
@@ -184,4 +186,8 @@ void FileSystem::Close()
 FileSystem::~FileSystem()
 {
 	this->Close();
+
+	delete this->file;
+	delete this->ctype;
+	delete this->filename;
 }

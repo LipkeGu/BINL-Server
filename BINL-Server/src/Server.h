@@ -18,10 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 class Server
 {
 public:
-	Server(uint16_t port, ServerType type);
+	Server(uint16_t port, ServerType type, uint32_t ip);
 	~Server();
 
-	char Hostname[64];
+	char* Hostname;
 private:
 #ifdef _WIN32
 	WSADATA wsa;

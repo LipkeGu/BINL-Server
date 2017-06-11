@@ -20,7 +20,7 @@ DWORD WINAPI DHCP_Thread(void* threadArgs)
 void* DHCP_Thread(void* threadArgs)
 #endif
 {
-	_dhcp = new Server(67, DHCP);
+	_dhcp = new Server(67, DHCP, (uint32_t)threadArgs);
 	
 	delete _dhcp;
 	return 0;
@@ -32,7 +32,7 @@ DWORD WINAPI TFTP_Thread(void* threadArgs)
 void* TFTP_Thread(void* threadArgs)
 #endif
 {
-	_tftp = new Server(69, TFTP);
+	_tftp = new Server(69, TFTP, (uint32_t)threadArgs);
 
 	delete _tftp;
 	return 0;
@@ -45,7 +45,7 @@ DWORD WINAPI HTTP_Thread(void* threadArgs)
 void* HTTP_Thread(void* threadArgs)
 #endif
 {
-	_http = new Server(88, HTTP);
+	_http = new Server(88, HTTP, (uint32_t)threadArgs);
 
 	delete _http;
 	return 0;
@@ -53,26 +53,36 @@ void* HTTP_Thread(void* threadArgs)
 
 int main(int argc, char* argv[])
 {
+	int i;
+	uint32_t ip = 0;
+
+	if (argc > 1)
+		for (i = 0; i < argc; i++)
+		{
+			if (memcmp(argv[i], "-ip", 6) == 0) /* THIS Server IP */
+				ip = IP2Bytes(argv[(i + 1)]);
+		}
+
 #ifdef _WIN32
-	DHCP_Handle = CreateThread(0, 0, &DHCP_Thread, NULL, 0, &DHCP_ThreadID);
+	DHCP_Handle = CreateThread(0, 0, &DHCP_Thread, &ip, 0, &DHCP_ThreadID);
 #else
-	pthread_create(&DHCP_ThreadID, 0, &DHCP_Thread, NULL);
+	pthread_create(&DHCP_ThreadID, 0, &DHCP_Thread, &ip);
 #endif
 
 #ifdef _WIN32
-	HTTP_Handle = CreateThread(0, 0, &HTTP_Thread, NULL, 0, &HTTP_ThreadID);
+	HTTP_Handle = CreateThread(0, 0, &HTTP_Thread, &ip, 0, &HTTP_ThreadID);
 #else
-	pthread_create(&HTTP_ThreadID, 0, &HTTP_Thread, NULL);
+	pthread_create(&HTTP_ThreadID, 0, &HTTP_Thread, &ip);
 #endif
 
 #ifdef WITH_TFTP
 #ifdef _WIN32
-	TFTP_Handle = CreateThread(0, 0, &TFTP_Thread, NULL, 0, &TFTP_ThreadID);
+	TFTP_Handle = CreateThread(0, 0, &TFTP_Thread, &ip, 0, &TFTP_ThreadID);
 #else
-	pthread_create(&TFTP_ThreadID, 0, &TFTP_Thread, NULL);
+	pthread_create(&TFTP_ThreadID, 0, &TFTP_Thread, &ip);
 #endif
 #endif
-	_binl = new Server(4011, BINL);
+	_binl = new Server(4011, BINL, ip);
 
 	delete _binl;
 #ifdef _WIN32

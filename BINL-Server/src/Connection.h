@@ -31,7 +31,6 @@ public:
 	void Handle_ERR_Request(Client* client, Packet* packet, ServerType type);
 #endif
 	void Handle_HTTP_Request(Client* client, Packet* packet, ServerType type);
-
 private:
 	EventLog* Logger;
 	uint32_t ServerIP;
@@ -46,7 +45,6 @@ private:
 #else
 	socklen_t remotesocklen;
 #endif
-
 	int AddressFamily;
 	int SocketType;
 	int Protocol;

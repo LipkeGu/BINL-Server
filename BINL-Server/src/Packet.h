@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 class Packet
 {
 public:
-	Packet(EventLog* pLogger, ServerType type, size_t bufferlen);
+	Packet(ServerType type, size_t bufferlen);
 	~Packet();
 
 	size_t GetLength();
@@ -38,7 +38,6 @@ public:
 	size_t TFTP_OptionOffset(const char* option);
 	bool TFTP_isOPCode(uint8_t opcode);
 private:
-	EventLog* logger;
 	char* buffer;
 
 	ServerType type;

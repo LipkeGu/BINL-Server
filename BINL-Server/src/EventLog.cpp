@@ -20,84 +20,70 @@ using namespace std;
 EventLog::EventLog(string context)
 {
 	this->SetContext(context);
-	this->message = "";
+	this->SetMsg("");
 	this->logtype = Info;
 	this->LogBuffer = NULL;
 }
 
 EventLog::~EventLog()
 {
-	this->SetMsg("");
-	this->SetContext("");
+	delete this->context;
+	delete this->message;
 }
 
 void EventLog::SetContext(string context)
 {
 	if (context.size() > 3)
-		this->context = context;
+		this->context = new string(context);
 }
 
 void EventLog::SetMsg(string message)
 {
 	if (message.size() > 3)
-		this->message = message;
+		this->message = new string(message);
 }
 
 string EventLog::GetMsg()
 {
-	return this->message;
+	return *this->message;
 }
 
 string EventLog::GetContext()
 {
-	return this->context;
+	return *this->context;
 }
 
 void EventLog::WriteLine()
 {
 	string* prefix;
 
-	if (this->context.size() > 3)
+	if (this->context->size() > 3)
 	{
 		switch (this->logtype)
 		{
 		case Info:
-#ifdef _WIN32
-			if (!SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0xf))
-				this->Report(Debug, "Color Change not supported!");
-#endif
-			prefix = new string("[I] ");
+			prefix = new string("[I]");
 			break;
 
 		case Warn:
-#ifdef _WIN32
-			if (!SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0xe))
-				this->Report(Debug, "Color Change not supported!\n");
-#endif
-			prefix = new string("[W] ");
+			prefix = new string("[W]");
 			break;
 
 		case Error:
-#ifdef _WIN32
-			if (!SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0xc))
-				this->Report(Debug, "Color Change not supported!");
-#endif
-			prefix = new string("[E] ");
+			prefix = new string("[E]");
 			break;
-#ifdef _DEBUG
+#ifdef DEBUG
 		case Debug:
-			prefix = new string("[D] ");
+			prefix = new string("[D]");
 			break;
 #endif
 		default:
 			return;
 		}
 	
-		cout << *prefix << this->GetContext() << ": " << this->GetMsg() << endl;
-#ifdef _WIN32
-		if (!SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0xf))
-			this->Report(Debug, "Color Change not supported!");
-#endif
+		cout << *prefix << " " << this->GetContext() << ": " << this->GetMsg() << endl;
+
+		delete prefix;
 	}
 }
 

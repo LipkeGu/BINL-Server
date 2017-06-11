@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "Includes.h"
 
-Server::Server(uint16_t port, ServerType type)
+Server::Server(uint16_t port, ServerType type, uint32_t ip)
 {
 	int retval = SOCKET_ERROR;
 	uint8_t bcast = 0;
@@ -31,10 +31,12 @@ Server::Server(uint16_t port, ServerType type)
 	if (this->servertype != TFTP)
 	{
 #endif
-		ClearBuffer(this->Hostname, sizeof(this->Hostname));
-		gethostname(this->Hostname, sizeof(this->Hostname));
+		this->Hostname = new char[64];
+		ClearBuffer(this->Hostname, 64);
+		gethostname(this->Hostname, 64);
 
 		this->ServerIP = IP2Bytes(hostname_to_ip(this->Hostname));
+		delete[] this->Hostname;
 #ifdef WITH_TFTP
 	}
 #endif
@@ -57,7 +59,6 @@ Server::Server(uint16_t port, ServerType type)
 	case HTTP:
 		this->Logger = new EventLog("HTTP-Server");
 		break;
-
 	default:
 		return;
 	}
