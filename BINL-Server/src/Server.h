@@ -27,7 +27,6 @@ private:
 	WSADATA wsa;
 #endif
 	Connection* Srvsocket;
-	EventLog* Logger;
 	uint32_t ServerIP;
 	ServerType servertype;
 };

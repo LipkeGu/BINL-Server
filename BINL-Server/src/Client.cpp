@@ -16,50 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define _CRT_SECURE_NO_WARNINGS
 #include "Includes.h"
 
-Client::Client(ServerType type, string* id, char* hwaddr)
+Client::Client(ServerType type, std::string* id, char* hwaddr)
 {
 	this->SetType(type);
 	this->id = id;
-	this->http_description = "OK";
-	this->http_status = 200;
-	this->s = NULL;
-
-#ifdef WITH_TFTP
-	if (type != TFTP)
-	{
-#endif
-		this->arch = INTEL_X86;
-		this->isWDSRequest = false;
-		this->NextAction = APPROVAL;
-		this->msgtype = DHCP_DIS;
-		this->PollIntervall = BS16(1);
-		this->ServerSelection = false;
-		this->RetryCount = BS16(255);
-		this->ActionDone = 1;
-		this->NextServer = 0;
-		this->referralIP = 0;
-		this->AdminMessage = "IP: " + *this->id + "\tMAC: " + string(hwaddr);
-		this->requestid = 0;
-#ifdef WITH_TFTP
-	}
-	else
-	{
-		this->file = NULL;
-#ifdef VARWIN
-		this->AllowVariableWindowSize = false;
-		this->msftwindow = 27182;
-#endif
-		this->block = 0;
-		this->tftp_state = TFTP_HandShake;
-		this->blocksize = 1024;
-		this->windowsize = 1;
-		this->max_blocksize = 8192;
-		this->retries = 0;
-	}
-#endif
-
-	this->bytesToRead = 0;
-	this->bytesread = 0;
 }
 
 void Client::SetType(ServerType type)
@@ -72,32 +32,32 @@ ServerType Client::GetType()
 	return this->type;
 }
 
-void Client::SetDHCPMessageType(DHCPMsgTypes type)
+void Client::DHCP_CLIENT::SetDHCPMessageType(DHCPMsgTypes type)
 {
 	this->msgtype = type;
 }
 
-DHCPMsgTypes Client::GetDHCPMessageType()
+DHCPMsgTypes Client::DHCP_CLIENT::GetDHCPMessageType()
 {
 	return this->msgtype;
 }
 
-void Client::SetReferralServer(uint32_t addr)
+void Client::DHCP_CLIENT::WDS::SetReferralServer(uint32_t addr)
 {
 	this->referralIP = addr;
 }
 
-uint32_t Client::GetReferralServer()
+uint32_t Client::DHCP_CLIENT::WDS::GetReferralServer()
 {
 	return this->referralIP;
 }
 
-void Client::SetRequestID(uint32_t id)
+void Client::DHCP_CLIENT::WDS::SetRequestID(uint32_t id)
 {
 	this->requestid = id;
 }
 
-uint32_t Client::GetRequestID()
+uint32_t Client::DHCP_CLIENT::WDS::GetRequestID()
 {
 	return this->requestid;
 }
@@ -112,220 +72,208 @@ SOCKET* Client::GetSocket()
 	return this->s;
 }
 
-CLIENT_ARCH Client::GetArchitecture()
+CLIENT_ARCH Client::DHCP_CLIENT::GetArchitecture()
 {
 	return this->arch;
 }
 
-void Client::SetArchitecture(CLIENT_ARCH arch)
+void Client::DHCP_CLIENT::SetArchitecture(CLIENT_ARCH arch)
 {
 	this->arch = arch;
 }
 
 #ifdef WITH_TFTP
-void Client::SetTFTPState(TFTP_State state)
+void Client::TFTP_CLIENT::SetTFTPState(TFTP_State state)
 {
 	this->tftp_state = state;
 }
 
-TFTP_State Client::GetTFTPState()
+TFTP_State Client::TFTP_CLIENT::GetTFTPState()
 {
 	return this->tftp_state;
 }
 #endif
 
-void Client::SetBootfile(string file)
+void Client::DHCP_CLIENT::SetBootfile(std::string file)
 {
 	this->bootfile = file;
 }
 
-void Client::SetWDSMessage(string message)
+void Client::DHCP_CLIENT::WDS::SetWDSMessage(std::string message)
 {
 	this->AdminMessage = message;
 }
 
-string Client::GetWDSMessage()
+std::string Client::DHCP_CLIENT::WDS::GetWDSMessage()
 {
 	return this->AdminMessage;
 }
 
-void Client::SetNextAction(WDSNBP_OPTION_NEXTACTION action)
+void Client::DHCP_CLIENT::WDS::SetNextAction(WDSNBP_OPTION_NEXTACTION action)
 {
 	this->NextAction = action;
 }
 
-WDSNBP_OPTION_NEXTACTION Client::GetNextAction()
+WDSNBP_OPTION_NEXTACTION Client::DHCP_CLIENT::WDS::GetNextAction()
 {
 	return this->NextAction;
 }
 
-void Client::SetRetryCount(uint16_t action)
+void Client::DHCP_CLIENT::WDS::SetRetryCount(uint16_t action)
 {
 	this->RetryCount = action;
 }
 
-uint16_t Client::GetRetryCount()
+uint16_t Client::DHCP_CLIENT::WDS::GetRetryCount()
 {
 	return this->RetryCount;
 }
 
-void Client::SetPollInterval(uint16_t interval)
+void Client::DHCP_CLIENT::WDS::SetPollInterval(uint16_t interval)
 {
 	this->PollIntervall = interval;
 }
 
-uint16_t Client::GetPollInterval()
+uint16_t Client::DHCP_CLIENT::WDS::GetPollInterval()
 {
 	return this->PollIntervall;
 }
 
-string Client::GetBootfile(CLIENT_ARCH arch)
+std::string Client::DHCP_CLIENT::GetBootfile(CLIENT_ARCH arch)
 {
-	if (this->isWDSRequest)
+	switch (arch)
 	{
-		switch (arch)
+	case INTEL_X86:
+		switch (this->WDS.GetNextAction())
 		{
-		case INTEL_X86:
-			switch (this->GetNextAction())
-			{
-			case ABORT:
-				this->bootfile = "Boot\\x86\\abortpxe.com";
-				this->bcdfile = "";
-				break;
-			default:
-				this->bootfile = "Boot\\x86\\pxeboot.n12";
-				this->bcdfile = "Boot\\x86\\default.bcd";
-				break;
-			}
+		case ABORT:
+			this->bootfile = "Boot\\x86\\abortpxe.com";
 			break;
-		case INTEL_X64:
-			switch (this->GetNextAction())
-			{
-			case ABORT:
-				this->bootfile = "Boot\\x64\\abortpxe.com";
-				this->bcdfile = "";
-				break;
-			default:
-				this->bootfile = "Boot\\x64\\pxeboot.n12";
-				this->bcdfile = "Boot\\x64\\default.bcd";
-				break;
-			}
-			break;
-		case INTEL_EFI:
-			this->bootfile = "Boot\\efi\\bootmgfw.efi";
-			this->bcdfile = "Boot\\efi\\default.bcd";
-				break;
 		default:
-			this->bootfile = DHCP_BOOTFILE;
-			this->bcdfile = "";
+			this->bootfile = "Boot\\x86\\pxeboot.n12";
+//			this->bcdfile = "Boot\\x86\\default.bcd";
 			break;
 		}
-	}
-	else
-	{
+		break;
+	case INTEL_X64:
+		switch (this->WDS.GetNextAction())
+		{
+		case ABORT:
+			this->bootfile = "Boot\\x64\\abortpxe.com";
+//			this->bcdfile = "";
+			break;
+		default:
+			this->bootfile = "Boot\\x64\\pxeboot.n12";
+//			this->bcdfile = "Boot\\x64\\default.bcd";
+			break;
+		}
+		break;
+	case INTEL_EFI:
+		this->bootfile = "Boot\\efi\\bootmgfw.efi";
+//		this->bcdfile = "Boot\\efi\\default.bcd";
+		break;
+	default:
 		this->bootfile = DHCP_BOOTFILE;
-		this->bcdfile = "";
+//		this->bcdfile = "";
+		break;
 	}
 
 	return this->bootfile;
 }
 
-void Client::SetBCDfile(string file)
+void Client::SetBCDfile(std::string file)
 {
 	this->bcdfile = file;
 }
 
-string Client::GetBCDfile()
+std::string Client::GetBCDfile()
 {
 	return this->bcdfile;
 }
 
 #ifdef WITH_TFTP
-void Client::SetBlock()
+void Client::TFTP_CLIENT::SetBlock()
 {
 	this->block++;
 }
 
-void Client::SetBlock(uint16_t block)
+void Client::TFTP_CLIENT::SetBlock(uint16_t block)
 {
 	this->block = block;
 }
 
-uint16_t Client::GetWindowSize()
+uint16_t Client::TFTP_CLIENT::GetWindowSize()
 {
 	return this->windowsize;
 }
 
-void Client::SetWindowSize(uint16_t window)
+void Client::TFTP_CLIENT::SetWindowSize(uint16_t window)
 {
 	this->windowsize = window;
 }
 
-uint16_t Client::GetBlockSize()
+uint16_t Client::TFTP_CLIENT::GetBlockSize()
 {
 	return this->blocksize;
 }
 
-void Client::SetBlockSize(uint16_t blocksize)
+void Client::TFTP_CLIENT::SetBlockSize(uint16_t blocksize)
 {
 	this->blocksize = (blocksize < this->max_blocksize) ?
 		blocksize : this->max_blocksize;
 }
 
-#ifdef VARWIN
-uint16_t Client::GetMSFTWindow()
+uint16_t Client::TFTP_CLIENT::GetMSFTWindow()
 {
 	return this->msftwindow;
 }
 
-void Client::SetMSFTWindow(uint16_t window)
+void Client::TFTP_CLIENT::SetMSFTWindow(uint16_t window)
 {
 	this->msftwindow = window;
 }
 #endif
 
-uint16_t Client::GetBlock()
+uint16_t Client::TFTP_CLIENT::GetBlock()
 {
 	return this->block;
 }
 
-bool Client::GetACK(Packet* packet)
+bool Client::TFTP_CLIENT::GetACK(Packet* packet)
 {
 	bool b = false;
-#ifdef VARWIN
-	if (packet->GetLength() > 4 && this->AllowVariableWindowSize)
+#
+	if (packet->GetLength() > 4)
 		this->SetWindowSize(packet->GetBuffer()[4]);
-#endif
-
+#
 	char* x = new char[2];
 	x[0] = (this->GetBlock() & 0xFF00) >> 8;
 	x[1] = (this->GetBlock() & 0x00FF);
-	
+
 	b = (memcmp(&packet->GetBuffer()[2], x, 2) == 0) ?
 		true : false;
 
 	delete x;
-	
+
 	return b;
 }
-#endif
 
-long Client::GetBytesToRead()
+long Client::TFTP_CLIENT::GetBytesToRead()
 {
 	return this->bytesToRead;
 }
 
-void Client::SetBytesToRead(long bytes)
+void Client::TFTP_CLIENT::SetBytesToRead(long bytes)
 {
 	this->bytesToRead = bytes;
 }
 
-long Client::GetBytesRead()
+long Client::TFTP_CLIENT::GetBytesRead()
 {
 	return this->bytesread;
 }
 
-void Client::SetBytesRead(long bytes)
+void Client::TFTP_CLIENT::SetBytesRead(long bytes)
 {
 	if (bytes == 0)
 		this->bytesread = bytes;

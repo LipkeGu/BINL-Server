@@ -25,6 +25,42 @@ Packet::Packet(ServerType type, size_t bufferlen)
 	this->SetType(type);
 }
 
+void Packet::Add_DHCPOption(const DHCP_Option option)
+{
+	Remove_DHCPOption(option.Option);
+
+	dhcp_options.insert(std::pair<unsigned char, DHCP_Option>(option.Option, option));
+}
+
+void Packet::Add_TFTPOption(const TFTP_Option option)
+{
+	Remove_TFTPOption(option.Option);
+
+	tftp_options.insert(std::pair<std::string, TFTP_Option>(option.Option, option));
+}
+
+void Packet::Remove_DHCPOption(const unsigned char& opt)
+{
+	if (Has_DHCPOption(opt))
+		dhcp_options.erase(opt);
+}
+
+void Packet::Remove_TFTPOption(const std::string& opt)
+{
+	if (Has_TFTPOption(opt))
+		tftp_options.erase(opt);
+}
+
+bool Packet::Has_DHCPOption(const unsigned char& option)
+{
+	return dhcp_options.find(option) != dhcp_options.end();
+}
+
+bool Packet::Has_TFTPOption(const std::string& option)
+{
+	return tftp_options.find(option) != tftp_options.end();
+}
+
 size_t Packet::GetLength()
 {
 	return this->Packetlen;
@@ -63,7 +99,76 @@ size_t Packet::GetPosition()
 	return this->position;
 }
 
+void Packet::Commit()
+{
+	switch (this->GetType())
+	{
+	case TYPE_DHCP:
+	case TYPE_BINL:
+		Add_DHCPOption(DHCP_Option(0xff));
+		this->SetPosition(0);
+		this->SetPosition(240);
+
+		for (auto & option : dhcp_options)
+		{
+			Write(&option.second.Option, sizeof(unsigned char));
+			Write(&option.second.Length, sizeof(unsigned char));
+
+			if (option.second.Length != 1)
+				Write(&option.second.Value, option.second.Length);
+			else if (option.second.Length != 0)
+				Write(&option.second.Value, option.second.Length);
+		}
+
+		for (auto i = this->GetLength(); this->GetLength() > 240; i--)
+			if (static_cast<unsigned char>(this->GetBuffer()[i]) == static_cast<unsigned char>(0xff))
+			{
+				this->SetPosition(0);
+				this->SetPosition(i + 1);
+				return;
+			}
+		break;
+	}
+
+}
+
+void Packet::Parse()
+{
+	switch (this->GetType())
+	{
+	case TYPE_DHCP:
+	case TYPE_BINL:
+		for (auto i = 240; i < this->GetLength(); i++)
+		{
+			if (static_cast<unsigned char>(this->GetBuffer()[i]) == static_cast<unsigned char>(0xff))
+				break;
+
+			if (static_cast<unsigned char>(this->GetBuffer()[i + 1]) == static_cast<unsigned char>(1))
+			{
+				auto x = this->GetBuffer()[i];
+				Add_DHCPOption(DHCP_Option(static_cast<unsigned char>(x),
+					static_cast<unsigned char>(this->GetBuffer()[i + 2])));
+			}
+			else
+				Add_DHCPOption(DHCP_Option(static_cast<unsigned char>(this->GetBuffer()[i]),
+					static_cast<unsigned char>(this->GetBuffer()[i + 1]), &this->GetBuffer()[i + 2]));
+
+			i += 1 + this->GetBuffer()[i + 1];
+		}
+		break;
+	}
+}
+
 void Packet::Write(const void* data, size_t length)
+{
+	if ((this->GetPosition() + length) < this->GetLength())
+	{
+		memcpy(&this->buffer[this->GetPosition()], data, length);
+		this->SetPosition(length);
+	}
+}
+
+void Packet::Write(const char* data, size_t length)
 {
 	if ((this->GetPosition() + length) < this->GetLength())
 	{
@@ -82,7 +187,7 @@ void Packet::Clear()
 }
 
 #ifdef WITH_TFTP
-void Packet::TFTP_Error(uint8_t errcode, string* message)
+void Packet::TFTP_Error(uint8_t errcode, std::string* message)
 {
 	this->GetBuffer()[1] = (uint8_t)5;
 	this->GetBuffer()[3] = errcode;
@@ -104,8 +209,8 @@ void Packet::TFTP_Data(uint16_t block)
 
 void Packet::TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint16_t msftwindow)
 {
-	stringstream* ss = new stringstream;
-	
+	std::stringstream* ss = new std::stringstream;
+
 	this->GetBuffer()[1] = (uint8_t)6;
 	this->SetPosition(2);
 
@@ -117,7 +222,7 @@ void Packet::TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint1
 	this->GetBuffer()[this->GetPosition()] = 0;
 	this->SetPosition(1);
 
-	ss = new stringstream;
+	ss = new std::stringstream;
 	*ss << tsize;
 	this->Write("tsize", sizeof("tsize"));
 	this->Write(ss->str().c_str(), ss->str().size());
@@ -128,7 +233,7 @@ void Packet::TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint1
 		this->GetBuffer()[this->GetPosition()] = 0;
 		this->SetPosition(1);
 
-		ss = new stringstream;
+		ss = new std::stringstream;
 		*ss << windosize;
 		this->Write("windowsize", sizeof("windowsize"));
 		this->Write(ss->str().c_str(), ss->str().size());
@@ -140,7 +245,7 @@ void Packet::TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint1
 			this->GetBuffer()[this->GetPosition()] = 0;
 			this->SetPosition(1);
 
-			ss = new stringstream;
+			ss = new std::stringstream;
 			*ss << msftwindow;
 			this->Write("msftwindow", sizeof("msftwindow"));
 			this->Write(ss->str().c_str(), ss->str().size());
@@ -148,7 +253,7 @@ void Packet::TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint1
 		}
 #endif
 	}
-		
+
 	this->GetBuffer()[this->GetPosition()] = 0;
 	this->SetPosition(1);
 }
@@ -182,36 +287,14 @@ bool Packet::TFTP_isOPCode(uint8_t opcode)
 }
 #endif
 
-string Packet::HTTP_GetFileName()
+DHCP_Option Packet::Get_DHCPOption(const unsigned char option)
 {
-	stringstream* p = new stringstream;
-	*p << this->GetBuffer();
+	return this->dhcp_options.at(option);
+}
 
-	size_t start = 0;
-	size_t end = 0;
-
-	string res = "/";
-
-	start = p->str().find_first_of("T ");
-
-	start += strlen("T ");
-
-	res = p->str().substr(start);
-	delete p;
-
-	end = res.find_first_of(" HTT");
-
-	res = res.substr(0, end);
-	
-	if (res == "/")
-		return "index.html";
-	else
-	{
-		if (res.c_str()[0] == '/')
-			return res.substr(1);
-		else
-			return res;
-	}
+TFTP_Option Packet::Get_TFTPOption(const std::string option)
+{
+	return this->tftp_options.at(option);
 }
 
 Packet::~Packet()

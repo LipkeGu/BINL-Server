@@ -20,7 +20,7 @@ DWORD WINAPI DHCP_Thread(void* threadArgs)
 void* DHCP_Thread(void* threadArgs)
 #endif
 {
-	_dhcp = new Server(67, DHCP, (uint32_t)threadArgs);
+	_dhcp = new Server(67, TYPE_DHCP, (uint32_t)threadArgs);
 	
 	delete _dhcp;
 	return 0;
@@ -32,24 +32,12 @@ DWORD WINAPI TFTP_Thread(void* threadArgs)
 void* TFTP_Thread(void* threadArgs)
 #endif
 {
-	_tftp = new Server(69, TFTP, (uint32_t)threadArgs);
+	_tftp = new Server(69, TYPE_TFTP, (uint32_t)threadArgs);
 
 	delete _tftp;
 	return 0;
 }
 #endif
-
-#ifdef _WIN32
-DWORD WINAPI HTTP_Thread(void* threadArgs)
-#else
-void* HTTP_Thread(void* threadArgs)
-#endif
-{
-	_http = new Server(88, HTTP, (uint32_t)threadArgs);
-
-	delete _http;
-	return 0;
-}
 
 int main(int argc, char* argv[])
 {
@@ -69,12 +57,6 @@ int main(int argc, char* argv[])
 	pthread_create(&DHCP_ThreadID, 0, &DHCP_Thread, &ip);
 #endif
 
-#ifdef _WIN32
-	HTTP_Handle = CreateThread(0, 0, &HTTP_Thread, &ip, 0, &HTTP_ThreadID);
-#else
-	pthread_create(&HTTP_ThreadID, 0, &HTTP_Thread, &ip);
-#endif
-
 #ifdef WITH_TFTP
 #ifdef _WIN32
 	TFTP_Handle = CreateThread(0, 0, &TFTP_Thread, &ip, 0, &TFTP_ThreadID);
@@ -82,18 +64,16 @@ int main(int argc, char* argv[])
 	pthread_create(&TFTP_ThreadID, 0, &TFTP_Thread, &ip);
 #endif
 #endif
-	_binl = new Server(4011, BINL, ip);
+	_binl = new Server(4011, TYPE_BINL, ip);
 
 	delete _binl;
 #ifdef _WIN32
 	CloseHandle(DHCP_Handle);
-	CloseHandle(HTTP_Handle);
 #ifdef WITH_TFTP
 	CloseHandle(TFTP_Handle);
 #endif
 #else
 	pthread_exit(&DHCP_ThreadID);
-	pthread_exit(&HTTP_ThreadID);
 #ifdef WITH_TFTP
 	pthread_exit(&TFTP_ThreadID);
 #endif

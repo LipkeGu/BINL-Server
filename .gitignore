@@ -231,3 +231,5 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 BINL-Server.VC.db
+*.opendb
+*.db

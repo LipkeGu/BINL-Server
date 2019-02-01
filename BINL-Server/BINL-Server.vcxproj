@@ -22,7 +22,7 @@
     <ProjectGuid>{BEDEE93F-B92E-4793-8F88-029B05FB4BAF}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>BINLServer</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -41,7 +41,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -145,7 +145,6 @@
     <ClInclude Include="src\Client.h" />
     <ClInclude Include="src\Connection.h" />
     <ClInclude Include="src\Defines.h" />
-    <ClInclude Include="src\Eventlog.h" />
     <ClInclude Include="src\FileSystem.h" />
     <ClInclude Include="src\Functions.h" />
     <ClInclude Include="src\Includes.h" />
@@ -156,12 +155,14 @@
   <ItemGroup>
     <ClCompile Include="src\Client.cpp" />
     <ClCompile Include="src\Connection.cpp" />
-    <ClCompile Include="src\EventLog.cpp" />
     <ClCompile Include="src\FileSystem.cpp" />
     <ClCompile Include="src\Functions.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Packet.cpp" />
     <ClCompile Include="src\Server.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Boot\x86\wdsnbp.com" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

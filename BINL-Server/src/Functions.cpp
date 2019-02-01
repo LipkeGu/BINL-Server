@@ -41,11 +41,11 @@ DHCPMsgTypes GetDHCPMessageType(Client* client, Packet* packet, ServerType type)
 	switch (t)
 	{
 	case DHCP_DIS: // Discover
-		client->SetDHCPMessageType(DHCP_DIS);
+		client->DHCP_CLIENT.SetDHCPMessageType(DHCP_DIS);
 		return DHCP_OFF;
 	case DHCP_IFM:
 	case DHCP_REQ: // Request
-		client->SetDHCPMessageType((t == DHCP_REQ) ? DHCP_REQ : DHCP_IFM);
+		client->DHCP_CLIENT.SetDHCPMessageType((t == DHCP_REQ) ? DHCP_REQ : DHCP_IFM);
 		return DHCP_ACK;
 	default:
 		return DHCP_OFF;
@@ -72,18 +72,16 @@ ServerType GetClientType(Client* client, Packet* packet, ServerType type)
 		client->SetType(type);
 		break;
 	default:
-		if (type == HTTP)
-			client->SetType(HTTP);
 		break;
 	}
 
 	return client->GetType();
 }
 
-string GetCurDir()
+std::string GetCurDir()
 {
 	char* cCurrentPath = new char[260];
-	string x = "";
+	std::string x = "";
 
 #ifdef _WIN32 
 	_getcwd(cCurrentPath, 260);
@@ -97,15 +95,15 @@ string GetCurDir()
 	return x;
 }
 
-string replace(string& str, const string& from, const string& to)
+std::string replace(std::string& str, const std::string& from, const std::string& to)
 {
 	size_t start_pos = str.find(from);
 
-	while (str.find(from) != string::npos)
+	while (str.find(from) != std::string::npos)
 	{
 		start_pos = str.find(from);
 		
-		if (start_pos != string::npos)
+		if (start_pos != std::string::npos)
 			str = str.replace(start_pos, from.length(), to);
 	}
 
@@ -132,12 +130,12 @@ bool IsWDSPacket(Packet* packet, size_t offset)
 		&pxeclientend, sizeof(uint8_t)) == 0) ? true : false;
 }
 
-string iso_8859_1_to_utf8(string &str)
+std::string iso_8859_1_to_utf8(std::string &str)
 {
-	string strOut;
+	std::string strOut = "";
 	uint8_t* ch = new uint8_t(0);
 
-	for (string::iterator it = str.begin(); it != str.end(); ++it)
+	for (std::string::iterator it = str.begin(); it != str.end(); ++it)
 	{
 		*ch = *it;
 		if (*ch < 0x80)
@@ -150,29 +148,6 @@ string iso_8859_1_to_utf8(string &str)
 	}
 
 	return strOut;
-}
-
-string HTTP_SetHeader(int status, string contentType, string description, size_t contentlength)
-{
-	stringstream response;
-	response << "HTTP/1.1 " << status << " " << description << "\r\n";
-	response << "Content-Type: " << contentType << "\r\n";
-	response << "Content-Length: " << contentlength << "\r\n";
-	response << "\r\n";
-		
-	return response.str();
-}
-
-string HTTP_Error(const Client* client, const string& message)
-{
-	string* content = new string("<html>\n<head>\n</head>\n<body>\n" + message + "\n</body>\n</html>");
-	
-	stringstream ss;
-	ss << HTTP_SetHeader(client->http_status, "text/html", "Not Found", content->size());
-	ss << *content;
-	delete content;
-
-	return ss.str();
 }
 
 bool FindVendorOpt(const char* Buffer, size_t length, const char* expression)
@@ -197,8 +172,8 @@ void BuildWDSOptions(Client* client, ServerType type)
 	uint8_t* DHCPend = new uint8_t(0xff);
 	uint8_t* realsize = new uint8_t(0);
 
-	if (client->GetNextAction() == REFERRAL && client->GetReferralServer() == 0)
-		client->SetNextAction(APPROVAL);
+	if (client->DHCP_CLIENT.WDS.GetNextAction() == REFERRAL && client->DHCP_CLIENT.WDS.GetReferralServer() == 0)
+		client->DHCP_CLIENT.WDS.SetNextAction(APPROVAL);
 
 	// Next Action
 	*option = WDSBP_OPT_NEXT_ACTION;
@@ -210,7 +185,7 @@ void BuildWDSOptions(Client* client, ServerType type)
 	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
 	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[*offset], &client->NextAction, sizeof(uint8_t));
+	memcpy(&tmpbuffer[*offset], &client->DHCP_CLIENT.WDS.NextAction, sizeof(uint8_t));
 	*offset += sizeof(uint8_t);
 
 	// RequestID
@@ -223,7 +198,7 @@ void BuildWDSOptions(Client* client, ServerType type)
 	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
 	*offset += sizeof(uint8_t);
 
-	uint32_t* reqid = new uint32_t(BS32(client->GetRequestID()));
+	uint32_t* reqid = new uint32_t(BS32(client->DHCP_CLIENT.WDS.GetRequestID()));
 	memcpy(&tmpbuffer[*offset], &reqid, sizeof(uint32_t));
 	*offset += sizeof(uint32_t);
 	delete reqid;
@@ -238,7 +213,7 @@ void BuildWDSOptions(Client* client, ServerType type)
 	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
 	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[*offset], &client->PollIntervall, sizeof(uint16_t));
+	memcpy(&tmpbuffer[*offset], &client->DHCP_CLIENT.WDS.PollIntervall, sizeof(uint16_t));
 	*offset += sizeof(uint16_t);
 
 	// Poll Retry Count
@@ -251,13 +226,13 @@ void BuildWDSOptions(Client* client, ServerType type)
 	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
 	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[*offset], &client->RetryCount, sizeof(uint16_t));
+	memcpy(&tmpbuffer[*offset], &client->DHCP_CLIENT.WDS.RetryCount, sizeof(uint16_t));
 	*offset += sizeof(uint16_t);
 
-	if (client->GetNextAction() == REFERRAL &&
-		client->GetReferralServer() != 0)
+	if (client->DHCP_CLIENT.WDS.GetNextAction() == REFERRAL &&
+		client->DHCP_CLIENT.WDS.GetReferralServer() != 0)
 	{
-		if (client->ServerSelection)
+		if (client->DHCP_CLIENT.WDS.ServerSelection)
 		{
 
 			// Allow Server selection
@@ -288,7 +263,7 @@ void BuildWDSOptions(Client* client, ServerType type)
 		memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
 		*offset += sizeof(uint8_t);
 
-		uint32_t* ipaddr = new uint32_t(client->GetReferralServer());
+		uint32_t* ipaddr = new uint32_t(client->DHCP_CLIENT.WDS.GetReferralServer());
 
 		memcpy(&tmpbuffer[*offset], &ipaddr, sizeof(uint32_t));
 		*offset += sizeof(uint32_t);
@@ -306,15 +281,15 @@ void BuildWDSOptions(Client* client, ServerType type)
 	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
 	*offset += sizeof(uint8_t);
 
-	memcpy(&tmpbuffer[*offset], &client->ActionDone, sizeof(uint8_t));
+	memcpy(&tmpbuffer[*offset], &client->DHCP_CLIENT.WDS.ActionDone, sizeof(uint8_t));
 	*offset += sizeof(uint8_t);
 
 
-	if (client->GetWDSMessage().size() != 0)
+	if (client->DHCP_CLIENT.WDS.GetWDSMessage().size() != 0)
 	{
 		// Admin Message
 		*option = WDSBP_OPT_MESSAGE;
-		*length = (uint8_t)client->GetWDSMessage().size();
+		*length = (uint8_t)client->DHCP_CLIENT.WDS.GetWDSMessage().size();
 
 		memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
 		*offset += sizeof(uint8_t);
@@ -322,20 +297,18 @@ void BuildWDSOptions(Client* client, ServerType type)
 		memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
 		*offset += sizeof(uint8_t);
 
-		strncpy(&tmpbuffer[*offset], client->GetWDSMessage().c_str(), \
-			client->GetWDSMessage().size() + 1);
+		strncpy(&tmpbuffer[*offset], client->DHCP_CLIENT.WDS.GetWDSMessage().c_str(), \
+			client->DHCP_CLIENT.WDS.GetWDSMessage().size() + 1);
 
-		*offset += (uint8_t)client->GetWDSMessage().size() + 1;
+		*offset += (uint8_t)client->DHCP_CLIENT.WDS.GetWDSMessage().size() + 1;
 	}
 
 	memcpy(&tmpbuffer[*offset], &DHCPend, sizeof(uint8_t));
 	*offset += sizeof(uint8_t);
 
 	tmpbuffer[0] = (uint8_t)250;
-
-	*realsize = *offset - 2;
-	memcpy(&tmpbuffer[1], &realsize, sizeof(uint8_t));
-
+	tmpbuffer[0] = (uint8_t)*offset;
+	
 	client->Data->Write(tmpbuffer, *offset);
 
 	delete[] tmpbuffer;

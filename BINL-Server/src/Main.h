@@ -22,11 +22,7 @@ HANDLE DHCP_Handle;
 DWORD TFTP_ThreadID;
 HANDLE TFTP_Handle;
 
-DWORD HTTP_ThreadID;
-HANDLE HTTP_Handle;
-
 DWORD WINAPI DHCP_Thread(void* threadArgs);
-DWORD WINAPI HTTP_Thread(void* threadArgs);
 DWORD WINAPI TFTP_Thread(void* threadArgs);
 #else
 pthread_t DHCP_ThreadID;
@@ -34,10 +30,9 @@ pthread_t TFTP_ThreadID;
 pthread_t HTTP_ThreadID;
 
 void* DHCP_Thread(void* threadArgs);
-void* HTTP_Thread(void* threadArgs);
 void* TFTP_Thread(void* threadArgs);
 #endif
 Server* _dhcp;
 Server* _binl;
 Server* _tftp;
-Server* _http;
+

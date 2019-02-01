@@ -12,6 +12,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <vector>
 
 enum WDSNBP_Options
 {
@@ -48,23 +49,171 @@ enum LogType
 	Debug
 };
 
+typedef struct TFTP_Option
+{
+	std::string Option = "";
+	size_t Length = 0;
+	char Value[256];
+
+	TFTP_Option()
+	{
+
+	}
+
+	TFTP_Option(const std::string& opt, const std::string& value)
+	{
+		ClearBuffer(Value, (value.size() + 1));
+
+		Option = opt;
+		Length = value.size();
+		memcpy(&Value, value.c_str(), value.size());
+	}
+
+	TFTP_Option(const unsigned char opt)
+	{
+		ClearBuffer(Value, 1);
+
+		Option = opt;
+		Length = 0;
+	}
+
+	TFTP_Option(const std::string& opt, size_t length, const unsigned short value)
+	{
+		ClearBuffer(Value, 2);
+		Option = opt;
+		memcpy(&Value, &value, 2);
+	}
+
+	~TFTP_Option()
+	{
+
+	}
+} TFTP_Option;
+
+typedef struct DHCP_Option
+{
+	DHCP_Option()
+	{
+		memset(this, 0, sizeof(this));
+	};
+
+	DHCP_Option(const unsigned char opt, const unsigned char length, const void* value)
+	{
+		Option = opt;
+		Length = length;
+		memset(Value, 0, 1024);
+
+		if (length != 0)
+			memcpy(&Value, value, Length);
+	}
+
+	DHCP_Option(const unsigned char opt, const std::string value)
+	{
+		Option = opt;
+		Length = static_cast<unsigned char>(value.size());
+		memset(&Value, 0, 1024);
+
+		if (Length != 0)
+			memcpy(Value, value.c_str(), Length);
+	}
+
+	DHCP_Option(const unsigned char opt, const unsigned char value)
+	{
+		Option = opt;
+		Length = 1;
+		memset(&Value, 0, 1024);
+
+		if (Length != 0)
+			memcpy(Value, &value, Length);
+	}
+
+	DHCP_Option(const unsigned char opt, const unsigned short value)
+	{
+		Option = opt;
+		Length = 2;
+		memset(&Value, 0, 1024);
+
+		if (Length != 0)
+			memcpy(&Value, &value, Length);
+	}
+
+	DHCP_Option(const unsigned char opt, const unsigned int value)
+	{
+		Option = opt;
+		Length = 4;
+		memset(&Value, 0, 1024);
+
+		if (Length != 0)
+			memcpy(&Value, &value, Length);
+	}
+
+	DHCP_Option(const unsigned char opt, const unsigned long value)
+	{
+		Option = opt;
+		Length = 4;
+		memset(&Value, 0, 1024);
+
+		if (Length != 0)
+			memcpy(&Value, &value, Length);
+	}
+
+	DHCP_Option(const unsigned char opt, const std::vector<DHCP_Option> value)
+	{
+		Option = opt;
+		Length = 0;
+
+		auto offset = 0;
+
+		// Get the entire options length!
+		for (const auto & option : value)
+			Length += option.Length + 2;
+
+		memset(&Value, 0, Length);
+
+		for (const auto & option : value)
+		{
+			memcpy(&Value[offset], &option.Option, 1);
+			offset += 1;
+
+			memcpy(&Value[offset], &option.Length, 1);
+			offset += 1;
+
+			memcpy(&Value[offset], &option.Value, option.Length);
+			offset += option.Length;
+		}
+
+		Length = offset;
+	}
+
+	DHCP_Option(const unsigned char opt)
+	{
+		Option = opt;
+		Length = 0;
+		memset(&Value, 0, 1024);
+	}
+
+	unsigned char Option;
+	unsigned char Length;
+
+	char Value[1024];
+} DHCP_Option;
+
 enum ServerType
 {
-	DHCP,
+	TYPE_DHCP,
 #ifdef WITH_TFTP
-	TFTP,
+	TYPE_TFTP,
 #endif
-	BINL,
-	HTTP
+	TYPE_BINL,
 };
 
 enum DHCPMsgTypes
 {
-	DHCP_DIS = 1,
-	DHCP_OFF = 2,
-	DHCP_REQ = 3,
-	DHCP_ACK = 5,
-	DHCP_IFM = 8
+	DHCP_DIS = 0x01,
+	DHCP_OFF = 0x02,
+	DHCP_REQ = 0x03,
+	DHCP_ACK = 0x05,
+	DHCP_IFM = 0x08
 };
 
 #ifdef WITH_TFTP
@@ -109,11 +258,4 @@ enum FileOpenMode
 	FileWrite = 1,
 	FileReadBinary = 2,
 	FileWriteBinary = 3
-};
-
-enum HTTPStatuscode
-{
-	OK = 200,
-	ForBidden = 403,
-	NotFound = 404
 };

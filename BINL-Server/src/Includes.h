@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <vector>
 
 #ifdef _DEBUG
 	#ifndef DEBUG
@@ -72,14 +73,11 @@ typedef int SOCKET;
 #define SOCKET_ERROR -1
 #endif
 
-using namespace std;
-
 #ifndef BINLSERVER
-#define BINLSERVER
+#define BINLSERVER	1
 
 #include "Defines.h"
 #include "FileSystem.h"
-#include "Eventlog.h"
 #include "Packet.h"
 #include "Client.h"
 #include "Functions.h"

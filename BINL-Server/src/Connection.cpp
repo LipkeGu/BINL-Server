@@ -17,19 +17,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "Includes.h"
 
-using namespace std;
-
-Connection::Connection(EventLog *pLogger, ServerType type, uint32_t IPAddress)
+Connection::Connection(ServerType type, uint32_t IPAddress)
 {
-	this->Logger = pLogger;
 	this->serverType = type;
 	this->remotesocklen = sizeof(this->remote);
-	this->clients = new map<string, Client*>();
+	this->clients = new std::map<std::string, Client*>();
 	this->ServerIP = IPAddress;
 	this->requestID = 1;
 	this->AddressFamily = AF_INET;
-	this->Protocol = (type != HTTP) ? IPPROTO_UDP : IPPROTO_TCP;
-	this->SocketType = (type != HTTP) ? SOCK_DGRAM : SOCK_STREAM;
+	this->Protocol = IPPROTO_UDP;
+	this->SocketType = SOCK_DGRAM;
 	this->Conn = SOCKET_ERROR;
 	this->SocketState = SOCKET_ERROR;
 }
@@ -40,61 +37,19 @@ int Connection::CreateUDPSocket(int Broadcast, int ReUseAddr, uint16_t port)
 
 	if (this->Conn != SOCKET_ERROR)
 	{
-		if (this->serverType == DHCP)
+		if (this->serverType == TYPE_DHCP)
 		{
 			this->SocketState = setsockopt(this->Conn, SOL_SOCKET,
 				SO_REUSEADDR, (const char*)&ReUseAddr, sizeof(ReUseAddr));
 
 			if (this->SocketState == SOCKET_ERROR)
-			{
-				this->Logger->LogBuffer = new char[1024];
-				ClearBuffer(this->Logger->LogBuffer, 1024);
-				
-				sprintf(this->Logger->LogBuffer, "Failed to set SO_REUSEADDR on socket: %s", strerror(errno));
-				
-				this->Logger->Report(Error, this->Logger->LogBuffer);
-				delete this->Logger->LogBuffer;
-
 				return this->SocketState;
-			}
 
 			this->SocketState = setsockopt(this->Conn, SOL_SOCKET,
 				SO_BROADCAST, (const char*)&Broadcast, sizeof(Broadcast));
 
 			if (this->SocketState == SOCKET_ERROR)
-			{
-
-				this->Logger->LogBuffer = new char[1024];
-				ClearBuffer(this->Logger->LogBuffer, 1024);
-				
-				sprintf(this->Logger->LogBuffer, "Failed to set SO_BROADCAST on socket: %s", strerror(errno));
-				
-				this->Logger->Report(Error, this->Logger->LogBuffer);
-				delete this->Logger->LogBuffer;
-
 				return this->SocketState;
-			}
-		}
-
-		if (this->serverType == HTTP)
-		{
-			int keepalive = 1;
-			
-			this->SocketState = setsockopt(this->Conn, SOL_SOCKET,
-				SO_KEEPALIVE, (const char*)&keepalive, sizeof(keepalive));
-			
-			if (this->SocketState == SOCKET_ERROR)
-			{
-				this->Logger->LogBuffer = new char[1024];
-				ClearBuffer(this->Logger->LogBuffer, 1024);
-				
-				sprintf(this->Logger->LogBuffer, "Failed to set SO_KEEPALIVE on socket: %s", strerror(errno));
-				
-				this->Logger->Report(Error, this->Logger->LogBuffer);
-				delete this->Logger->LogBuffer;
-
-				return this->SocketState;
-			}
 		}
 
 		ClearBuffer(&this->listener, sizeof(this->listener));
@@ -115,126 +70,99 @@ int Connection::CreateUDPSocket(int Broadcast, int ReUseAddr, uint16_t port)
 
 int Connection::Listen()
 {
-	Packet* packet;
-	SOCKET* s;
-
+	char buffer[16384];
 	while (this->SocketState != SOCKET_ERROR)
 	{
-		packet = new Packet(this->serverType, 2048);
+		ClearBuffer(buffer, sizeof buffer);
+
 		this->remotesocklen = sizeof(this->remote);
 
-		if (this->serverType != HTTP)
-			this->SocketState = recvfrom(this->Conn, packet->GetBuffer(),
-			(int)packet->GetLength(), 0, (struct sockaddr *)&this->remote, &this->remotesocklen);
-		else
-		{
-			listen(this->Conn, 5);
-			s = new SOCKET(accept(this->Conn, (struct sockaddr *) &this->remote, &this->remotesocklen));
-			if (!s)
-			{
-				close(*s);
-				delete s;
-				continue;
-			}
-#ifdef _WIN32
-			this->SocketState = read(*s, packet->GetBuffer(), (int)packet->GetLength(), 0);
-#else
-			this->SocketState = read(*s, packet->GetBuffer(), packet->GetLength());
-#endif
-		}
+		this->SocketState = recvfrom(this->Conn, buffer, sizeof buffer, 0, (struct sockaddr *)&this->remote, &this->remotesocklen);
+		if (this->SocketState == SOCKET_ERROR)
+			continue;
 
-		if (this->SocketState == SOCKET_ERROR || this->SocketState == 0)
-		{
-			if (this->serverType == HTTP)
-			{
-				close(*s);
-				delete s;
-			}
-		}
-		else
-		{
-			string* addr = new string(inet_ntoa(this->remote.sin_addr));
-
-			packet->SetLength(this->SocketState);
-			tmpClient = clients->find(*addr);
-
-			if (tmpClient == clients->end())
-			{
-#ifdef WITH_TFTP
-				if (this->serverType != TFTP && this->serverType != HTTP)
-				{
-#endif
-					char* hwaddr; 
-					hwaddr = new char[packet->GetBuffer()[BOOTP_OFFSET_MACLEN] + 12];
-					ClearBuffer(hwaddr, packet->GetBuffer()[BOOTP_OFFSET_MACLEN] + 12);
-
-					uint8_t hwadr[6];
-
-					memcpy(&hwadr, &packet->GetBuffer()[BOOTP_OFFSET_MACADDR],
-						packet->GetBuffer()[BOOTP_OFFSET_MACLEN]);
-					
-					sprintf(hwaddr, "%02X:%02X:%02X:%02X:%02X:%02X", hwadr[0],
-						hwadr[1], hwadr[2], hwadr[3], hwadr[4], hwadr[5]);
-
-					clients->insert(pair<string, Client*>(*addr, new Client(this->serverType, addr, hwaddr)));
-					delete[] hwaddr;
-#ifdef WITH_TFTP
-				}
-				else
-					clients->insert(pair<string, Client*>(*addr, new Client(this->serverType, addr, NULL)));
-#endif
-				if (this->serverType == HTTP)
-					clients->find(*addr)->second->SetSocket(s);
-			}
-
-			switch (GetClientType(clients->find(*addr)->second, packet, this->serverType))
-			{
-			case DHCP:
-			case BINL:
-				if (FindVendorOpt(packet->GetBuffer(), packet->GetLength(), DHCP_VENDORCLASS_PXE))
-				{
-					clients->find(*addr)->second->NextServer = this->ServerIP;
-					this->Handle_DHCP_Request(clients->find(*addr)->second, packet, this->serverType);
-				}
-				break;
-#ifdef WITH_TFTP
-			case TFTP:
-				switch (packet->GetBuffer()[1])
-				{
-				case TFTP_RRQ:
-					this->Handle_RRQ_Request(clients->find(*addr)->second, packet, this->serverType);
-					break;
-				case TFTP_ACK:
-						this->Handle_ACK_Request(clients->find(*addr)->second, packet, this->serverType);
-					break;
-				case TFTP_ERR:
-					this->Handle_ERR_Request(clients->find(*addr)->second, packet, this->serverType);
-					clients->erase(*addr);
-					break;
-				default:
-					clients->find(*addr)->second->SetTFTPState(TFTP_Done);
-					break;
-				}
-				break;
-#endif
-			case HTTP:
-				this->Handle_HTTP_Request(clients->find(*addr)->second, packet, this->serverType);
-				clients->erase(*addr);
-				break;
-			default:
-				break;
-			}	
-		}
-
-		delete packet;
+		this->Handle_Request(this->serverType, remote, buffer, this->SocketState);
 	}
-	
+
 	return this->SocketState;
+}
+
+Client* Connection::Get_Client(ServerType type, sockaddr_in& remote, Packet* packet)
+{
+	auto addr = new std::string(inet_ntoa(this->remote.sin_addr));
+	if (clients->find(*addr) == clients->end())
+	{
+		if (this->serverType != TYPE_TFTP)
+		{
+			auto hwaddr = new char[packet->GetBuffer()[BOOTP_OFFSET_MACLEN] + 12];
+			ClearBuffer(hwaddr, packet->GetBuffer()[BOOTP_OFFSET_MACLEN] + 12);
+
+			uint8_t hwadr[6];
+
+			memcpy(&hwadr, &packet->GetBuffer()[BOOTP_OFFSET_MACADDR],
+				packet->GetBuffer()[BOOTP_OFFSET_MACLEN]);
+
+			sprintf(hwaddr, "%02X:%02X:%02X:%02X:%02X:%02X", hwadr[0],
+				hwadr[1], hwadr[2], hwadr[3], hwadr[4], hwadr[5]);
+
+			clients->insert(std::pair<std::string, Client*>(*addr, new Client(this->serverType, addr, hwaddr)));
+			delete[] hwaddr;
+		}
+		else
+			clients->insert(std::pair<std::string, Client*>(*addr, new Client(this->serverType, addr, NULL)));
+	}
+
+	return clients->find(*addr)->second;
+}
+
+void Connection::Handle_Request(ServerType type, sockaddr_in& remote, const char* buffer, size_t length)
+{
+	auto packet = new Packet(this->serverType, length);
+	memcpy(&packet->GetBuffer()[0], buffer, length);
+
+	auto c = this->Get_Client(this->serverType, remote, packet);
+
+	switch (GetClientType(c, packet, this->serverType))
+	{
+	case TYPE_DHCP:
+	case TYPE_BINL:
+		if (FindVendorOpt(packet->GetBuffer(), packet->GetLength(), DHCP_VENDORCLASS_PXE))
+		{
+			packet->Parse();
+			c->DHCP_CLIENT.NextServer = this->ServerIP;
+			this->Handle_DHCP_Request(c, packet, this->serverType);
+		}
+		break;
+	case TYPE_TFTP:
+		switch (packet->GetBuffer()[1])
+		{
+		case TFTP_RRQ:
+			this->Handle_RRQ_Request(c, packet, this->serverType);
+			break;
+		case TFTP_ACK:
+			this->Handle_ACK_Request(c, packet, this->serverType);
+			break;
+		case TFTP_ERR:
+			this->Handle_ERR_Request(c, packet, this->serverType);
+
+			break;
+		default:
+			c->TFTP_CLIENT.SetTFTPState(TFTP_Done);
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+	clients->erase(*c->id);
+	delete packet;
 }
 
 int Connection::Send(Client* client)
 {
-	if (this->serverType == DHCP)
+	auto retval = SOCKET_ERROR;
+
+	if (this->serverType == TYPE_DHCP)
 	{
 		struct sockaddr_in toAddr;
 		ClearBuffer(&toAddr, sizeof(toAddr));
@@ -243,26 +171,13 @@ int Connection::Send(Client* client)
 		toAddr.sin_addr.s_addr = INADDR_BROADCAST;
 		toAddr.sin_port = htons(68);
 
-		this->SocketState = sendto(this->Conn, client->Data->GetBuffer(),
+		retval = sendto(this->Conn, client->Data->GetBuffer(),
 			(int)client->Data->GetPosition(), 0, (struct sockaddr *)&toAddr, sizeof(toAddr));
 	}
 	else
-		if (this->serverType != HTTP)
-			this->SocketState = sendto(this->Conn, client->Data->GetBuffer(),
-				(int)client->Data->GetPosition(), 0, (struct sockaddr *)&this->remote, sizeof(this->remote));
-		else
-		{
-			size_t bs = 0;
+		retval = sendto(this->Conn, client->Data->GetBuffer(), (int)client->Data->GetPosition(), 0, (struct sockaddr *)&this->remote, sizeof(this->remote));
 
-			do
-			{
-				bs += send(*client->GetSocket(), &client->Data->GetBuffer()[bs],
-					(int)client->Data->GetPosition() - bs, 0);
-			
-			} while (bs < client->Data->GetPosition());
-		}
-
-	return this->SocketState;
+	return retval;
 }
 
 Connection::~Connection()
@@ -277,71 +192,50 @@ Connection::~Connection()
 #ifdef WITH_TFTP
 void Connection::Handle_ERR_Request(Client* client, Packet* packet, ServerType type)
 {
-	if (packet->GetBuffer()[3] != 0)
-	{
-		client->SetTFTPState(TFTP_Error);
-		char* errmsg = new char[packet->GetLength() - 4];
-		ClearBuffer(errmsg, packet->GetLength() - 4);
+	if (packet->GetBuffer()[3] == 0)
+		return;
 
-		strncpy(errmsg, &packet->GetBuffer()[4], packet->GetLength() - 4);
-		this->Logger->Report(Error, "[Client (" + *client->id + ")]: " + string(errmsg));
+	client->TFTP_CLIENT.SetTFTPState(TFTP_Error);
+	auto errmsg = new char[packet->GetLength() - 4];
+	ClearBuffer(errmsg, packet->GetLength() - 4);
 
-		delete[] errmsg;
-	}
+	strncpy(errmsg, &packet->GetBuffer()[4], packet->GetLength() - 4);
+
+	delete[] errmsg;
 }
 
 void Connection::Handle_ACK_Request(Client* client, Packet* packet, ServerType type)
 {
-	if (!client->GetACK(packet))
+	if (client->TFTP_CLIENT.GetTFTPState() != TFTP_Download)
 	{
-		if (client->retries == 2)
-			client->SetTFTPState(TFTP_Error);
-		else
-		{
-			client->SetBytesRead(client->last_bytesRead);
-			client->SetBlock(client->last_block);
-
-			client->retries++;
-		}
-	}
-	else
-	{
-		if (client->GetTFTPState() == TFTP_Download)
-		{
-			client->retries = 0;
-			size_t chunk = 0;
-			uint16_t i = 0;
-
-			for (i = 0; i < client->GetWindowSize(); i++)
-			{
-				chunk = (client->GetBlockSize() < (client->GetBytesToRead() - client->GetBytesRead())) ?
-					(size_t)client->GetBlockSize() : (size_t)(client->GetBytesToRead() - client->GetBytesRead());
-
-				client->Data = new Packet(type, 4 + chunk + 1);
-
-				client->last_block = client->GetBlock();
-				client->SetBlock();
-
-				client->Data->TFTP_Data(client->GetBlock());
-				client->last_bytesRead = client->GetBytesRead();
-
-				client->SetBytesRead(client->file->Read(client->Data->GetBuffer(),
-					client->Data->GetPosition(), client->GetBytesRead(), chunk));
-
-				client->Data->SetPosition(chunk);
-
-				this->SocketState = this->Send(client);
-				delete client->Data;
-
-				if (client->GetBytesRead() == client->GetBytesToRead())
-					client->SetTFTPState(TFTP_Done);
-			}
-		}
-		else
-			client->SetTFTPState(TFTP_Error);
+		client->TFTP_CLIENT.SetTFTPState(TFTP_Error);
+		return;
 	}
 
-	if (client->GetTFTPState() == TFTP_Done || client->GetTFTPState() == TFTP_Error)
+	for (auto i = 0; i < client->TFTP_CLIENT.GetWindowSize(); i++)
+	{
+		auto chunk = (client->TFTP_CLIENT.GetBlockSize() < (client->TFTP_CLIENT.GetBytesToRead() - client->TFTP_CLIENT.GetBytesRead())) ?
+			(size_t)client->TFTP_CLIENT.GetBlockSize() : (size_t)(client->TFTP_CLIENT.GetBytesToRead() - client->TFTP_CLIENT.GetBytesRead());
+
+		client->Data = new Packet(type, 4 + chunk + 1);
+		client->TFTP_CLIENT.SetBlock();
+
+		client->Data->TFTP_Data(client->TFTP_CLIENT.GetBlock());
+
+		client->TFTP_CLIENT.SetBytesRead(static_cast<long>(client->file->Read(client->Data->GetBuffer(),
+			static_cast<long>(client->Data->GetPosition()), client->TFTP_CLIENT.GetBytesRead(), chunk)));
+
+		client->Data->SetPosition(chunk);
+
+		this->SocketState = this->Send(client);
+		delete client->Data;
+
+		if (client->TFTP_CLIENT.GetBytesRead() == client->TFTP_CLIENT.GetBytesToRead())
+			client->TFTP_CLIENT.SetTFTPState(TFTP_Done);
+	}
+
+
+	if (client->TFTP_CLIENT.GetTFTPState() == TFTP_Done || client->TFTP_CLIENT.GetTFTPState() == TFTP_Error)
 	{
 		delete client->file;
 		this->clients->erase(*client->id);
@@ -350,7 +244,7 @@ void Connection::Handle_ACK_Request(Client* client, Packet* packet, ServerType t
 
 void Connection::Handle_RRQ_Request(Client* client, Packet* packet, ServerType type)
 {
-	char* filename = new char[255];
+	auto filename = new char[255];
 	ClearBuffer(filename, 255);
 
 	extString(&packet->GetBuffer()[2], 255, filename);
@@ -358,7 +252,7 @@ void Connection::Handle_RRQ_Request(Client* client, Packet* packet, ServerType t
 
 	delete[] filename;
 
-	client->SetBlock(0);
+	client->TFTP_CLIENT.SetBlock(0);
 
 	if (client->file->Exist())
 	{
@@ -371,11 +265,11 @@ void Connection::Handle_RRQ_Request(Client* client, Packet* packet, ServerType t
 				ClearBuffer(blksize, 6);
 				extString(&packet->GetBuffer()[packet->TFTP_OptionOffset("blksize")], 6, blksize);
 
-				client->SetBlockSize(atoi(blksize));
+				client->TFTP_CLIENT.SetBlockSize(atoi(blksize));
 				delete[] blksize;
 			}
 			else
-				client->SetBlockSize(1024);
+				client->TFTP_CLIENT.SetBlockSize(1024);
 
 			if (packet->TFTP_HasOption("windowsize"))
 			{
@@ -383,36 +277,34 @@ void Connection::Handle_RRQ_Request(Client* client, Packet* packet, ServerType t
 
 				ClearBuffer(winsize, 6);
 				extString(&packet->GetBuffer()[packet->TFTP_OptionOffset("windowsize")], 6, winsize);
-				
-				client->SetWindowSize(atoi(winsize));
+
+				client->TFTP_CLIENT.SetWindowSize(atoi(winsize));
 				delete[] winsize;
 
-#ifdef VARWIN
-				if (packet->TFTP_HasOption("msftwindow") && client->AllowVariableWindowSize)
+				if (packet->TFTP_HasOption("msftwindow"))
 				{
 					char* msftwin = new char[6];
 					ClearBuffer(msftwin, 6);
 
 					extString(&packet->GetBuffer()[packet->TFTP_OptionOffset("msftwindow")], 6, msftwin);
-					
-					client->SetMSFTWindow(27182);
+
+					client->TFTP_CLIENT.SetMSFTWindow(27182);
 					delete[] msftwin;
 				}
 				else
-					client->SetMSFTWindow(0);
-#endif
+					client->TFTP_CLIENT.SetMSFTWindow(0);
 			}
 			else
-				client->SetWindowSize(1);
+				client->TFTP_CLIENT.SetWindowSize(1);
 
-			client->SetBytesToRead(client->file->Length());
-			client->SetBytesRead(0);
+			client->TFTP_CLIENT.SetBytesToRead(client->file->Length());
+			client->TFTP_CLIENT.SetBytesRead(0);
 
-			client->Data = new Packet(type, 4 + client->GetBlockSize());
-			client->Data->TFTP_OptAck(client->GetBlockSize(), client->GetBytesToRead(), \
-				client->GetWindowSize(), client->GetMSFTWindow());
+			client->Data = new Packet(type, 4 + client->TFTP_CLIENT.GetBlockSize());
+			client->Data->TFTP_OptAck(client->TFTP_CLIENT.GetBlockSize(), client->TFTP_CLIENT.GetBytesToRead(), \
+				client->TFTP_CLIENT.GetWindowSize(), client->TFTP_CLIENT.GetMSFTWindow());
 
-			client->SetTFTPState(TFTP_Download);
+			client->TFTP_CLIENT.SetTFTPState(TFTP_Download);
 
 			this->SocketState = this->Send(client);
 
@@ -420,11 +312,11 @@ void Connection::Handle_RRQ_Request(Client* client, Packet* packet, ServerType t
 		}
 		else
 		{
-			string* msg = new string("The value for option \"mode\" is not supported!");
+			auto msg = new std::string("The value for option \"mode\" is not supported!");
 
 			client->Data = new Packet(type, 4 + msg->size() + 2);
 			client->Data->TFTP_Error(8, msg);
-			client->SetTFTPState(TFTP_Error);
+			client->TFTP_CLIENT.SetTFTPState(TFTP_Error);
 
 			this->SocketState = this->Send(client);
 
@@ -435,10 +327,10 @@ void Connection::Handle_RRQ_Request(Client* client, Packet* packet, ServerType t
 	}
 	else
 	{
-		string* filename = new string(client->file->Name());
+		auto filename = new std::string(client->file->Name());
 		client->Data = new Packet(type, 4 + filename->size() + 2);
 		client->Data->TFTP_Error(1, filename);
-		client->SetTFTPState(TFTP_Error);
+		client->TFTP_CLIENT.SetTFTPState(TFTP_Error);
 
 		this->SocketState = this->Send(client);
 
@@ -470,7 +362,7 @@ void Connection::Handle_DHCP_Request(Client* client, Packet* packet, ServerType 
 	client->Data->Write(&packet->GetBuffer()[BOOTP_OFFSET_YOURIP], sizeof(uint32_t));
 
 	/* Next Server */
-	client->Data->Write(&client->NextServer, sizeof(uint32_t));
+	client->Data->Write(&client->DHCP_CLIENT.NextServer, sizeof(uint32_t));
 
 	/* Relay Agent */
 	client->Data->Write(&packet->GetBuffer()[BOOTP_OFFSET_RELAYIP], sizeof(uint32_t));
@@ -492,81 +384,45 @@ void Connection::Handle_DHCP_Request(Client* client, Packet* packet, ServerType 
 	/* Client Boot file */
 	ClearBuffer(&client->Data->GetBuffer()[108], 128);
 	sprintf(&client->Data->GetBuffer()[108], "%s", \
-		client->GetBootfile(INTEL_X86).c_str());
+		client->DHCP_CLIENT.GetBootfile(INTEL_X86).c_str());
 
 	/* MAGIC COOKIE */
 	client->Data->Write(&packet->GetBuffer()[BOOTP_OFFSET_COOKIE], sizeof(uint32_t));
 
 	/* DHCP Message Type */
-	client->Data->GetBuffer()[client->Data->GetPosition()] = 0x35;
-	client->Data->SetPosition(1);
-
-	client->Data->GetBuffer()[client->Data->GetPosition()] = 0x1;
-	client->Data->SetPosition(1);
-
-	client->Data->GetBuffer()[client->Data->GetPosition()] = \
-		(uint8_t)GetDHCPMessageType(client, packet, type);
-	client->Data->SetPosition(1);
+	client->Data->Add_DHCPOption(DHCP_Option(53, static_cast<unsigned char>
+		(GetDHCPMessageType(client, packet, type))));
 
 	/* DHCP Server Id */
-	client->Data->GetBuffer()[client->Data->GetPosition()] = 0x36;
-	client->Data->SetPosition(1);
+	client->Data->Add_DHCPOption(DHCP_Option(54, this->ServerIP));
 
-	client->Data->GetBuffer()[client->Data->GetPosition()] = \
-		(uint8_t)sizeof(this->ServerIP);
-	client->Data->SetPosition(1);
-
-	client->Data->Write(&this->ServerIP, sizeof(uint32_t));
 
 	/* DHCP Vendor Class */
-	client->Data->GetBuffer()[client->Data->GetPosition()] = 0x3C;
-	client->Data->SetPosition(1);
-
-	client->Data->GetBuffer()[client->Data->GetPosition()] = 0x09;
-	client->Data->SetPosition(1);
-
-	string* vendorIdent = new string("PXEClient");
-	client->Data->Write(vendorIdent->c_str(), vendorIdent->size());
-	delete vendorIdent;
+	client->Data->Add_DHCPOption(DHCP_Option(60, "PXEClient"));
 
 	/* DHCP Client GUID */
-	uint32_t uuid_offset = GetOptionOffset(packet, 97);
+	client->Data->Add_DHCPOption(packet->Get_DHCPOption(97));
 
-	if (uuid_offset != 0)
-	{
-		client->Data->Write(&packet->GetBuffer()[uuid_offset], 19);
-		uuid_offset = 0;
-	}
-
-	BuildWDSOptions(client, type);
+	//BuildWDSOptions(client, type);
 
 	if (client->isWDSRequest)
-		client->SetArchitecture((CLIENT_ARCH)packet->GetBuffer()[289]);
+		client->DHCP_CLIENT.SetArchitecture((CLIENT_ARCH)packet->GetBuffer()[289]);
 
 	/* BCD Path (Microsoft) */
-	if (client->GetBCDfile().size() != 0 && this->serverType == BINL)
-	{
-		client->Data->GetBuffer()[client->Data->GetPosition()] = (uint8_t)252;
-		client->Data->SetPosition(1);
-
-		client->Data->GetBuffer()[client->Data->GetPosition()] = (uint8_t)client->GetBCDfile().size();
-		client->Data->SetPosition(1);
-
-		client->Data->Write(client->GetBCDfile().c_str(), client->GetBCDfile().size());
-	}
+	if (client->GetBCDfile().size() != 0 && this->serverType == TYPE_BINL)
+		client->Data->Add_DHCPOption(DHCP_Option(252, client->GetBCDfile()));
 
 	/* DHCP Option "end of Packet" */
-	client->Data->GetBuffer()[client->Data->GetPosition()] = (uint8_t)255;
-	client->Data->SetPosition(1);
+	client->Data->Commit();
 
 	if (!client->isWDSRequest)
 	{
-		client->SetRequestID(this->requestID);
+		client->DHCP_CLIENT.WDS.SetRequestID(this->requestID);
 		this->SocketState = this->Send(client);
 	}
 	else
 	{
-		if (client->ActionDone == 1)
+		if (client->DHCP_CLIENT.WDS.ActionDone == 1)
 		{
 			this->SocketState = this->Send(client);
 			this->requestID += 1;
@@ -575,86 +431,4 @@ void Connection::Handle_DHCP_Request(Client* client, Packet* packet, ServerType 
 
 	clients->erase(*client->id);
 	delete client->Data;
-}
-
-void Connection::Handle_HTTP_Request(Client* client, Packet* packet, ServerType type)
-{
-	client->file = new FileSystem("http/" + packet->HTTP_GetFileName(), FileRead);
-
-	if (client->file->Exist())
-	{
-		client->http_description = "OK";
-		client->http_status = 200;
-
-		if (client->file->CType().find("text/") != string::npos)
-		{
-			char* tmp = new char[client->file->Length()];
-			ClearBuffer(tmp, client->file->Length());
-
-			client->SetBytesRead(client->file->Read(tmp, 0, 0, client->file->Length()));
-
-			stringstream* ss = new stringstream;
-			*ss << HTTP_SetHeader(client->http_status, client->file->CType(),
-				client->http_description, client->file->Length());
-			
-			*ss << tmp;
-
-			client->Data = new Packet(client->GetType(), ss->str().size() + 1);
-			client->Data->Write(ss->str().c_str(), ss->str().size());
-			
-			this->SocketState = Send(client);
-			close(*client->GetSocket());
-			
-			delete ss;
-			delete client->Data;
-			delete[] tmp;
-		}
-		else
-		{
-			client->SetBytesToRead(client->file->Length());
-			
-			size_t bs = 0;
-			size_t chunk = 16384;
-
-			do
-			{
-				chunk = (16384 < (client->GetBytesToRead() - client->GetBytesRead())) ?
-					(size_t)16384 : (size_t)(client->GetBytesToRead() - client->GetBytesRead());
-				
-				client->Data = new Packet(client->GetType(), chunk);
-				
-				bs = client->file->Read(client->Data->GetBuffer(),
-					client->Data->GetPosition(), client->GetBytesRead(), chunk);
-				
-				client->SetBytesRead(bs);
-				client->Data->SetPosition(bs);
-				
-				this->SocketState = Send(client);
-				
-				delete client->Data;
-
-			} while (client->GetBytesRead() < client->GetBytesToRead());
-						
-			close(*client->GetSocket());
-		}
-	}
-	else
-	{	
-		string* content;
-		client->Data = new Packet(client->GetType(), 1024);
-		client->http_description = "Not Found";
-		client->http_status = 404;
-
-		content = new string(HTTP_Error(client, client->http_description));
-		client->Data->Write(content->c_str(), content->size());
-		delete content;
-
-		this->SocketState = Send(client);
-		
-		close(*client->GetSocket());
-		delete client->Data;
-	}
-
-	delete client->file;
-	clients->erase(*client->id);
 }

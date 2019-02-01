@@ -16,45 +16,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define _CRT_SECURE_NO_WARNINGS
 #include "Includes.h"
 
-FileSystem::FileSystem(string filename, FileOpenMode mode)
+FileSystem::FileSystem(std::string filename, FileOpenMode mode)
 {
+	this->file = NULL;
 	this->mode = mode;
 	this->filesize = 0;
-	this->filename = new string(this->ResolvePath(filename));
+	this->filename = new std::string(this->ResolvePath(filename));
 	this->isOpen = this->Open();
 	this->ctype = NULL;
 
 	if (this->isOpen)
 	{
-		if (this->filename->find(".css") != string::npos)
-			this->ctype = new string("text/css");
+		if (this->filename->find(".txt") != std::string::npos)
+			this->ctype = new std::string("text/plain");
 
-		if (this->filename->find(".htm") != string::npos)
-			this->ctype = new string("text/html");
+		if (this->filename->find(".bcd") != std::string::npos)
+			this->ctype = new std::string("application/octet-stream");
 
-		if (this->filename->find(".js") != string::npos)
-			this->ctype = new string("text/javascript");
+		if (this->filename->find(".wim") != std::string::npos)
+			this->ctype = new std::string("application/octet-stream");
 
-		if (this->filename->find(".png") != string::npos)
-			this->ctype = new string("image/png");
-
-		if (this->filename->find(".jpg") != string::npos)
-			this->ctype = new string("image/jpg");
-
-		if (this->filename->find(".txt") != string::npos)
-			this->ctype = new string("text/plain");
-
-		if (this->filename->find(".bcd") != string::npos)
-			this->ctype = new string("application/octet-stream");
-
-		if (this->filename->find(".wim") != string::npos)
-			this->ctype = new string("application/octet-stream");
-
-		if (this->filename->find(".sdi") != string::npos)
-			this->ctype = new string("application/octet-stream");
+		if (this->filename->find(".sdi") != std::string::npos)
+			this->ctype = new std::string("application/octet-stream");
 	}
 	else
-		this->ctype = new string("");
+		this->ctype = new std::string("");
 }
 
 bool FileSystem::Exist()
@@ -62,7 +48,7 @@ bool FileSystem::Exist()
 	return this->isOpen;
 }
 
-string FileSystem::CType()
+std::string FileSystem::CType()
 {
 	return *this->ctype;
 }
@@ -104,9 +90,9 @@ bool FileSystem::Open()
 		return false;
 }
 
-string FileSystem::ResolvePath(string path)
+std::string FileSystem::ResolvePath(std::string path)
 {
-	string res = "./";
+	std::string res = "./";
 
 	if (path.find_first_of('\\') == 0 || path.find_first_of('/') == 0)
 	{
@@ -156,7 +142,7 @@ long FileSystem::Length()
 	return this->filesize;
 }
 
-string FileSystem::Name()
+std::string FileSystem::Name()
 {
 	return *this->filename;
 }

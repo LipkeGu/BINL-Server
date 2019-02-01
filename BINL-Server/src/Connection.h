@@ -18,21 +18,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 class Connection
 {
 public:
-	Connection(EventLog *pLogger, ServerType type, uint32_t IPAddress);
+	Connection(ServerType type, uint32_t IPAddress);
 	~Connection();
 
 	int CreateUDPSocket(int Broadcast, int ReUseAddr, uint16_t port);
 	int Send(Client* Data);
 	int Listen();
 	void Handle_DHCP_Request(Client* client, Packet* packet, ServerType type);
-#ifdef WITH_TFTP
+
+	void Handle_Request(ServerType type, sockaddr_in& remote, const char* buffer, size_t length);
+	Client* Get_Client(ServerType type, sockaddr_in& remote, Packet* packet);
+
 	void Handle_RRQ_Request(Client* client, Packet* packet, ServerType type);
 	void Handle_ACK_Request(Client* client, Packet* packet, ServerType type);
 	void Handle_ERR_Request(Client* client, Packet* packet, ServerType type);
-#endif
-	void Handle_HTTP_Request(Client* client, Packet* packet, ServerType type);
+
 private:
-	EventLog* Logger;
 	uint32_t ServerIP;
 	uint32_t requestID;
 
@@ -50,11 +51,9 @@ private:
 	int Protocol;
 	char* tmp;
 
-	map<string, Client*>::iterator tmpClient;
-
 	SOCKET Conn;
 	struct sockaddr_in listener;
 	struct sockaddr_in remote;
 	
-	map<string, Client*>* clients;
+	std::map<std::string, Client*>* clients;
 };

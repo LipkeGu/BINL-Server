@@ -18,27 +18,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 class FileSystem
 {
 public:
-	FileSystem(string filename, FileOpenMode mode);
+	FileSystem(std::string filename, FileOpenMode mode);
 	~FileSystem();
 
 	bool Exist();
 	
 	size_t Write(const char* data, size_t length, size_t byteswritten, long seek);
 	size_t Read(char* dest, size_t dest_offset, long seek, size_t length);
-	string Name();
+	std::string Name();
 	long Length();
-	string CType();
+	std::string CType();
 	void Close();
 
 private:
-	string ResolvePath(string path);
+	std::string ResolvePath(std::string path);
 	bool Open();
 	bool isOpen;
-	string* ctype;
+	std::string* ctype;
 
 	long filesize;
 
 	FILE* file;
-	string* filename;
+	std::string* filename;
 	FileOpenMode mode;
 };

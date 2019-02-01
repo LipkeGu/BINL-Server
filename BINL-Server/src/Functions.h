@@ -24,8 +24,5 @@ bool FindVendorOpt(const char* Buffer, size_t length, const char* expression);
 ServerType GetClientType(Client* client, Packet* packet, ServerType type);
 void BuildWDSOptions(Client* client, ServerType type);
 void extString(const char* buf, size_t size, char* out);
-string replace(string& str, const string& from, const string& to);
-string HTTP_SetHeader(int status, string contentType, string description, size_t contentlength);
-string iso_8859_1_to_utf8(string &str);
-
-string HTTP_Error(const Client* client, const string& message);
+std::string replace(std::string& str, const std::string& from, const std::string& to);
+std::string iso_8859_1_to_utf8(std::string &str);

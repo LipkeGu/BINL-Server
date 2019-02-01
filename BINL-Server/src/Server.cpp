@@ -28,7 +28,7 @@ Server::Server(uint16_t port, ServerType type, uint32_t ip)
 #endif
 
 #ifdef WITH_TFTP
-	if (this->servertype != TFTP)
+	if (this->servertype != TYPE_TFTP)
 	{
 #endif
 		this->Hostname = new char[64];
@@ -42,38 +42,27 @@ Server::Server(uint16_t port, ServerType type, uint32_t ip)
 #endif
 	switch (this->servertype)
 	{
-	case DHCP:
-		this->Logger = new EventLog("DHCP-Server");
+	case TYPE_DHCP:
 		bcast = 1;
 		break;
-	case BINL:
-		this->Logger = new EventLog("BINL-Server");
-		bcast = 0;
+	case TYPE_BINL:
+		bcast = 1;
 		break;
 #ifdef WITH_TFTP
-	case TFTP:
-		this->Logger = new EventLog("TFTP-Server");
+	case TYPE_TFTP:
 		bcast = 0;
 		break;
 #endif
-	case HTTP:
-		this->Logger = new EventLog("HTTP-Server");
-		break;
-	default:
-		return;
 	}
 
-	this->Srvsocket = new Connection(this->Logger, this->servertype, this->ServerIP);
+	this->Srvsocket = new Connection(this->servertype, this->ServerIP);
 	retval = this->Srvsocket->CreateUDPSocket(bcast, 1, port);
 	
-	if (retval == SOCKET_ERROR)
-		this->Logger->Report(Error, "CreateSocket(): Can not create Socket!");
-	else
+	if (retval != SOCKET_ERROR)
 		retval = this->Srvsocket->Listen();
 }
 
 Server::~Server()
 {
-	delete this->Logger;
 	delete this->Srvsocket;
 }

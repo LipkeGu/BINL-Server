@@ -24,9 +24,6 @@
     <ClInclude Include="src\Defines.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\Eventlog.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="src\FileSystem.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -53,9 +50,6 @@
     <ClCompile Include="src\Connection.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="src\EventLog.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="src\FileSystem.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
@@ -71,5 +65,8 @@
     <ClCompile Include="src\Server.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Boot\x86\wdsnbp.com" />
   </ItemGroup>
 </Project>

@@ -18,118 +18,114 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 class Client
 {
 public:
-	Client(ServerType type, string* id, char* hwaddr);
+	Client(ServerType type, std::string* id, char* hwaddr);
 	~Client();
 
-	void SetWDSMessage(string message);
-	string GetWDSMessage();
+	struct DHCP_CLIENT {
+		struct WDS {
+			void SetWDSMessage(std::string message);
+			std::string GetWDSMessage();
 
-	void SetRequestID(uint32_t id);
-	uint32_t GetRequestID();
+			void SetRequestID(uint32_t id);
+			uint32_t GetRequestID();
 
-	void SetNextAction(WDSNBP_OPTION_NEXTACTION action);
-	WDSNBP_OPTION_NEXTACTION GetNextAction();
+			void SetNextAction(WDSNBP_OPTION_NEXTACTION action);
+			WDSNBP_OPTION_NEXTACTION GetNextAction();
 
-	void SetRetryCount(uint16_t action);
-	uint16_t GetRetryCount();
+			void SetRetryCount(uint16_t action);
+			uint16_t GetRetryCount();
 
-	void SetPollInterval(uint16_t interval);
-	uint16_t GetPollInterval();
+			void SetPollInterval(uint16_t interval);
+			uint16_t GetPollInterval();
+
+			void SetReferralServer(uint32_t addr);
+			uint32_t GetReferralServer();
+
+			WDSNBP_OPTION_NEXTACTION NextAction = APPROVAL;
+			uint8_t ActionDone = 0;
+			uint16_t PollIntervall = 10;
+			uint16_t RetryCount = 10;
+			uint32_t requestid = 1;
+			
+			uint32_t referralIP = 0;
+			std::string AdminMessage = "";
+			bool ServerSelection = false;
+		} WDS;
+
+		struct RBCP {
+
+		};
+
+		void SetDHCPMessageType(DHCPMsgTypes type);
+		DHCPMsgTypes GetDHCPMessageType();
+
+		CLIENT_ARCH GetArchitecture();
+		void SetArchitecture(CLIENT_ARCH arch);
+
+		void SetBootfile(std::string file);
+		std::string GetBootfile(CLIENT_ARCH arch);
+
+		std::string bootfile = "";
+		CLIENT_ARCH arch = INTEL_X86;
+		DHCPMsgTypes msgtype = DHCP_DIS;
+		uint32_t NextServer = 0;
+	} DHCP_CLIENT;
+
+	struct TFTP_CLIENT {
+		void SetTFTPState(TFTP_State state);
+		TFTP_State GetTFTPState();
+
+		void SetBlock();
+		void SetBlock(uint16_t block);
+		uint16_t GetBlock();
+
+		void SetWindowSize(uint16_t window);
+		uint16_t GetWindowSize();
+
+		void SetBlockSize(uint16_t blocksize);
+		uint16_t GetBlockSize();
+
+		void SetMSFTWindow(uint16_t window);
+		uint16_t GetMSFTWindow();
+
+		bool GetACK(Packet* packet);
+
+		void SetBytesToRead(long bytes);
+		long GetBytesToRead();
+
+		void SetBytesRead(long bytes);
+		long GetBytesRead();
+	private:
+		uint8_t retries = 0;
+		long last_bytesRead = 0;
+		uint16_t last_block = 0;
+		uint16_t max_blocksize = 8192;
+		uint16_t windowsize = 1;
+		uint16_t msftwindow = 27182;
+		uint16_t block = 0;
+		uint16_t blocksize = 1456;
+		TFTP_State tftp_state = TFTP_Error;
+
+		long bytesread = 0;
+		long bytesToRead = 0;
+	} TFTP_CLIENT;
 
 	void SetType(ServerType type);
 	ServerType GetType();
 
-	void SetDHCPMessageType(DHCPMsgTypes type);
-	DHCPMsgTypes GetDHCPMessageType();
-
-	CLIENT_ARCH GetArchitecture();
-	void SetArchitecture(CLIENT_ARCH arch);
-
-	void SetBootfile(string file);
-	string GetBootfile(CLIENT_ARCH arch);
-
-	void SetBCDfile(string file);
-	string GetBCDfile();
-
-	void SetReferralServer(uint32_t addr);
-	uint32_t GetReferralServer();
-#ifdef WITH_TFTP
-#ifdef VARWIN
-	bool AllowVariableWindowSize;
-#endif
-	void SetTFTPState(TFTP_State state);
-	TFTP_State GetTFTPState();
-
-	void SetBlock();
-	void SetBlock(uint16_t block);
-	uint16_t GetBlock();
-
-	void SetWindowSize(uint16_t window);
-	uint16_t GetWindowSize();
-
-	void SetBlockSize(uint16_t blocksize);
-	uint16_t GetBlockSize();
-
-#ifdef VARWIN
-	void SetMSFTWindow(uint16_t window);
-	uint16_t GetMSFTWindow();
-#endif
-	
-	bool GetACK(Packet* packet);
-	uint8_t retries;
-	long last_bytesRead;
-#endif
-
-	void SetBytesToRead(long bytes);
-	long GetBytesToRead();
-
-	void SetBytesRead(long bytes);
-	long GetBytesRead();
+	void SetBCDfile(std::string file);
+	std::string GetBCDfile();
 
 	void SetSocket(SOCKET* s);
 	SOCKET* GetSocket();
 	
-	string AdminMessage;
-	bool ServerSelection;
-	bool isWDSRequest;
-	Packet* Data;
-	string* id;
-	int http_status;
-	string http_description;
-
-	WDSNBP_OPTION_NEXTACTION NextAction;
-	uint8_t ActionDone;
-
-	uint16_t PollIntervall;
-	uint16_t RetryCount;
-	
-	uint32_t NextServer;
-	uint32_t referralIP;
-
-#ifdef WITH_TFTP
-	uint16_t last_block;
-	uint16_t max_blocksize;
-#endif
-	FileSystem* file;
+	bool isWDSRequest = false;
+	Packet* Data = nullptr;
+	std::string* id = nullptr;
+	FileSystem* file = nullptr;
 private:
-#ifdef WITH_TFTP
-	uint16_t windowsize;
-#ifdef VARWIN
-	uint16_t msftwindow;
-#endif
-	uint16_t block;
-	uint16_t blocksize;
-
-	TFTP_State tftp_state;
-#endif
-	uint32_t requestid;
-	long bytesread;
-
-	long bytesToRead;
-	string bootfile;
-	string bcdfile;
+	std::string bcdfile ="";
 	ServerType type;
-	CLIENT_ARCH arch;
-	DHCPMsgTypes msgtype;
-	SOCKET* s;
+
+	SOCKET* s = nullptr;
 };
