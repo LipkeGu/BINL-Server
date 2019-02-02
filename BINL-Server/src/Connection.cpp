@@ -144,17 +144,18 @@ void Connection::Handle_Request(ServerType type, sockaddr_in& remote, const char
 			break;
 		case TFTP_ERR:
 			this->Handle_ERR_Request(c, packet, this->serverType);
-
 			break;
 		default:
-			c->TFTP_CLIENT.SetTFTPState(TFTP_Done);
 			break;
 		}
+
+		if (c->TFTP_CLIENT.GetTFTPState() == TFTP_Done || c->TFTP_CLIENT.GetTFTPState() == TFTP_Error)
+			this->clients->erase(*c->id);
 		break;
 	default:
 		break;
 	}
-	clients->erase(*c->id);
+	
 	delete packet;
 }
 
@@ -232,13 +233,6 @@ void Connection::Handle_ACK_Request(Client* client, Packet* packet, ServerType t
 
 		if (client->TFTP_CLIENT.GetBytesRead() == client->TFTP_CLIENT.GetBytesToRead())
 			client->TFTP_CLIENT.SetTFTPState(TFTP_Done);
-	}
-
-
-	if (client->TFTP_CLIENT.GetTFTPState() == TFTP_Done || client->TFTP_CLIENT.GetTFTPState() == TFTP_Error)
-	{
-		delete client->file;
-		this->clients->erase(*client->id);
 	}
 }
 
@@ -383,8 +377,7 @@ void Connection::Handle_DHCP_Request(Client* client, Packet* packet, ServerType 
 
 	/* Client Boot file */
 	ClearBuffer(&client->Data->GetBuffer()[108], 128);
-	sprintf(&client->Data->GetBuffer()[108], "%s", \
-		client->DHCP_CLIENT.GetBootfile(INTEL_X86).c_str());
+	sprintf(&client->Data->GetBuffer()[108], "%s", DHCP_BOOTFILE);
 
 	/* MAGIC COOKIE */
 	client->Data->Write(&packet->GetBuffer()[BOOTP_OFFSET_COOKIE], sizeof(uint32_t));
@@ -412,6 +405,25 @@ void Connection::Handle_DHCP_Request(Client* client, Packet* packet, ServerType 
 	if (client->GetBCDfile().size() != 0 && this->serverType == TYPE_BINL)
 		client->Data->Add_DHCPOption(DHCP_Option(252, client->GetBCDfile()));
 
+	// WDS Option -> Used by WDSNBP
+	std::vector<DHCP_Option> wdsOptions;
+	wdsOptions.emplace_back(WDSBP_OPT_NEXT_ACTION, static_cast<unsigned char>(client->DHCP_CLIENT.WDS.GetNextAction()));
+	wdsOptions.emplace_back(WDSBP_OPT_REQUEST_ID, static_cast<unsigned long>(BS32(client->DHCP_CLIENT.WDS.GetRequestID())));
+	wdsOptions.emplace_back(WDSBP_OPT_POLL_INTERVAL, static_cast<unsigned short>(BS16(client->DHCP_CLIENT.WDS.GetPollInterval())));
+	wdsOptions.emplace_back(WDSBP_OPT_POLL_RETRY_COUNT, static_cast<unsigned short>(BS16(client->DHCP_CLIENT.WDS.GetRetryCount())));
+
+	if (client->DHCP_CLIENT.WDS.GetNextAction() == REFERRAL)
+	{
+		wdsOptions.emplace_back(WDSBP_OPT_REFERRAL_SERVER, client->DHCP_CLIENT.WDS.GetReferralServer());
+		wdsOptions.emplace_back(WDSBP_OPT_ALLOW_SERVER_SELECTION, static_cast<unsigned char>(1));
+	}
+
+	wdsOptions.emplace_back(WDSBP_OPT_ACTION_DONE, static_cast<unsigned char>(client->DHCP_CLIENT.WDS.ActionDone));
+	
+	if (client->DHCP_CLIENT.WDS.GetWDSMessage().size() != 0)
+		wdsOptions.emplace_back(WDSBP_OPT_MESSAGE, client->DHCP_CLIENT.WDS.GetWDSMessage());
+
+	client->Data->Add_DHCPOption(DHCP_Option(250, wdsOptions));
 	/* DHCP Option "end of Packet" */
 	client->Data->Commit();
 

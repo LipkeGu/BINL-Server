@@ -42,14 +42,14 @@ public:
 			uint32_t GetReferralServer();
 
 			WDSNBP_OPTION_NEXTACTION NextAction = APPROVAL;
-			uint8_t ActionDone = 0;
+			uint8_t ActionDone = 1;
 			uint16_t PollIntervall = 10;
 			uint16_t RetryCount = 10;
 			uint32_t requestid = 1;
 			
 			uint32_t referralIP = 0;
-			std::string AdminMessage = "";
-			bool ServerSelection = false;
+			std::string AdminMessage = "BINL-Server 0.2 - FBLipke.de";
+			bool ServerSelection = true;
 		} WDS;
 
 		struct RBCP {
