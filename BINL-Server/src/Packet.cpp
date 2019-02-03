@@ -15,11 +15,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Includes.h"
 
-Packet::Packet(ServerType type, size_t bufferlen)
+Packet::Packet(ServerType* type, size_t bufferlen)
 {
 	this->Packetlen = bufferlen;
-	this->buffer = new char[this->Packetlen];
-	ClearBuffer(this->buffer, bufferlen);
+	ClearBuffer(this->buffer, sizeof buffer);
 
 	this->SetPosition(0);
 	this->SetType(type);
@@ -76,12 +75,12 @@ char* Packet::GetBuffer()
 	return this->buffer;
 }
 
-void Packet::SetType(ServerType type)
+void Packet::SetType(ServerType* type)
 {
 	this->type = type;
 }
 
-ServerType Packet::GetType()
+ServerType* Packet::GetType()
 {
 	return this->type;
 }
@@ -101,7 +100,7 @@ size_t Packet::GetPosition()
 
 void Packet::Commit()
 {
-	switch (this->GetType())
+	switch (*this->GetType())
 	{
 	case TYPE_DHCP:
 	case TYPE_BINL:
@@ -134,7 +133,7 @@ void Packet::Commit()
 
 void Packet::Parse()
 {
-	switch (this->GetType())
+	switch (*this->GetType())
 	{
 	case TYPE_DHCP:
 	case TYPE_BINL:
@@ -186,7 +185,6 @@ void Packet::Clear()
 		this->SetPosition(0);
 }
 
-#ifdef WITH_TFTP
 void Packet::TFTP_Error(uint8_t errcode, std::string* message)
 {
 	this->GetBuffer()[1] = (uint8_t)5;
@@ -239,7 +237,6 @@ void Packet::TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint1
 		this->Write(ss->str().c_str(), ss->str().size());
 		delete ss;
 
-#ifdef VARWIN
 		if (msftwindow > 1)
 		{
 			this->GetBuffer()[this->GetPosition()] = 0;
@@ -251,7 +248,6 @@ void Packet::TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint1
 			this->Write(ss->str().c_str(), ss->str().size());
 			delete ss;
 		}
-#endif
 	}
 
 	this->GetBuffer()[this->GetPosition()] = 0;
@@ -285,7 +281,6 @@ bool Packet::TFTP_isOPCode(uint8_t opcode)
 {
 	return (this->GetBuffer()[1] == opcode);
 }
-#endif
 
 DHCP_Option Packet::Get_DHCPOption(const unsigned char option)
 {
@@ -299,5 +294,4 @@ TFTP_Option Packet::Get_TFTPOption(const std::string option)
 
 Packet::~Packet()
 {
-	delete[] this->buffer;
 }

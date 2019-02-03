@@ -234,3 +234,4 @@ BINL-Server.VC.db
 *.opendb
 *.db
 *.com
+*.diagsession

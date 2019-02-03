@@ -20,24 +20,23 @@ DWORD WINAPI DHCP_Thread(void* threadArgs)
 void* DHCP_Thread(void* threadArgs)
 #endif
 {
-	_dhcp = new Server(67, TYPE_DHCP, (uint32_t)threadArgs);
+	_dhcp = new Server(67, std::unique_ptr<ServerType>(new ServerType(TYPE_DHCP)).get(), (uint32_t)threadArgs);
 	
 	delete _dhcp;
 	return 0;
 }
-#ifdef WITH_TFTP
+
 #ifdef _WIN32
 DWORD WINAPI TFTP_Thread(void* threadArgs)
 #else
 void* TFTP_Thread(void* threadArgs)
 #endif
 {
-	_tftp = new Server(69, TYPE_TFTP, (uint32_t)threadArgs);
+	_tftp = new Server(69, std::unique_ptr<ServerType>(new ServerType(TYPE_TFTP)).get(), (uint32_t)threadArgs);
 
 	delete _tftp;
 	return 0;
 }
-#endif
 
 int main(int argc, char* argv[])
 {
@@ -57,26 +56,20 @@ int main(int argc, char* argv[])
 	pthread_create(&DHCP_ThreadID, 0, &DHCP_Thread, &ip);
 #endif
 
-#ifdef WITH_TFTP
 #ifdef _WIN32
 	TFTP_Handle = CreateThread(0, 0, &TFTP_Thread, &ip, 0, &TFTP_ThreadID);
 #else
 	pthread_create(&TFTP_ThreadID, 0, &TFTP_Thread, &ip);
 #endif
-#endif
-	_binl = new Server(4011, TYPE_BINL, ip);
+	_binl = new Server(4011, std::unique_ptr<ServerType>(new ServerType(TYPE_BINL)).get(), ip);
 
 	delete _binl;
 #ifdef _WIN32
 	CloseHandle(DHCP_Handle);
-#ifdef WITH_TFTP
 	CloseHandle(TFTP_Handle);
-#endif
 #else
 	pthread_exit(&DHCP_ThreadID);
-#ifdef WITH_TFTP
 	pthread_exit(&TFTP_ThreadID);
-#endif
 #endif
 	return 0;
 }

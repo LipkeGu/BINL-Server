@@ -24,9 +24,6 @@
     <ClInclude Include="src\Defines.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\FileSystem.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="src\Functions.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -48,9 +45,6 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="src\Connection.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\FileSystem.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="src\Functions.cpp">

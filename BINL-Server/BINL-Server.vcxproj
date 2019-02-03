@@ -145,7 +145,6 @@
     <ClInclude Include="src\Client.h" />
     <ClInclude Include="src\Connection.h" />
     <ClInclude Include="src\Defines.h" />
-    <ClInclude Include="src\FileSystem.h" />
     <ClInclude Include="src\Functions.h" />
     <ClInclude Include="src\Includes.h" />
     <ClInclude Include="src\Main.h" />
@@ -155,7 +154,6 @@
   <ItemGroup>
     <ClCompile Include="src\Client.cpp" />
     <ClCompile Include="src\Connection.cpp" />
-    <ClCompile Include="src\FileSystem.cpp" />
     <ClCompile Include="src\Functions.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Packet.cpp" />

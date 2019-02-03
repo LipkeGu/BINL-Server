@@ -18,7 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 class Packet
 {
 public:
-	Packet(ServerType type, size_t bufferlen);
+	Packet(){};
+	Packet(ServerType* type, size_t bufferlen);
 	~Packet();
 
 	size_t GetLength();
@@ -29,8 +30,8 @@ public:
 	void Write(const void* data, size_t length);
 	void Write(const char* data, size_t length);
 	char* GetBuffer();
-	void SetType(ServerType type);
-	ServerType GetType();
+	void SetType(ServerType* type);
+	ServerType* GetType();
 	void TFTP_Error(uint8_t errcode, std::string* message);
 	void TFTP_Data(uint16_t block);
 	void TFTP_OptAck(uint16_t blksize, long tsize, uint16_t windosize, uint16_t msftwindow);
@@ -50,9 +51,9 @@ public:
 	void Commit();
 	void Parse();
 private:
-	char* buffer;
+	char buffer[16384];
 
-	ServerType type;
+	ServerType* type;
 	size_t position;
 	size_t Packetlen;
 

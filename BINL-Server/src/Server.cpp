@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "Includes.h"
 
-Server::Server(uint16_t port, ServerType type, uint32_t ip)
+Server::Server(uint16_t port, ServerType* type, uint32_t ip)
 {
 	int retval = SOCKET_ERROR;
 	uint8_t bcast = 0;
@@ -27,20 +27,17 @@ Server::Server(uint16_t port, ServerType type, uint32_t ip)
 	retval = WSAStartup(MAKEWORD(2, 2), &this->wsa);
 #endif
 
-#ifdef WITH_TFTP
-	if (this->servertype != TYPE_TFTP)
+	if (*this->servertype != TYPE_TFTP)
 	{
-#endif
 		this->Hostname = new char[64];
 		ClearBuffer(this->Hostname, 64);
 		gethostname(this->Hostname, 64);
 
 		this->ServerIP = IP2Bytes(hostname_to_ip(this->Hostname));
 		delete[] this->Hostname;
-#ifdef WITH_TFTP
 	}
-#endif
-	switch (this->servertype)
+
+	switch (*this->servertype)
 	{
 	case TYPE_DHCP:
 		bcast = 1;
@@ -48,11 +45,9 @@ Server::Server(uint16_t port, ServerType type, uint32_t ip)
 	case TYPE_BINL:
 		bcast = 1;
 		break;
-#ifdef WITH_TFTP
 	case TYPE_TFTP:
-		bcast = 0;
+		bcast = 1;
 		break;
-#endif
 	}
 
 	this->Srvsocket = new Connection(this->servertype, this->ServerIP);

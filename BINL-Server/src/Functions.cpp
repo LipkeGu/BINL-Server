@@ -31,7 +31,7 @@ uint32_t IP2Bytes(const char* addr)
 	return ipvalue.s_addr;
 }
 
-DHCPMsgTypes GetDHCPMessageType(Client* client, Packet* packet, ServerType type)
+DHCPMsgTypes GetDHCPMessageType(Client* client, Packet* packet, ServerType* type)
 {
 	if (client == NULL)
 		return DHCP_OFF;
@@ -41,11 +41,11 @@ DHCPMsgTypes GetDHCPMessageType(Client* client, Packet* packet, ServerType type)
 	switch (t)
 	{
 	case DHCP_DIS: // Discover
-		client->DHCP_CLIENT.SetDHCPMessageType(DHCP_DIS);
+		client->dhcp->SetMessageType(DHCP_DIS);
 		return DHCP_OFF;
 	case DHCP_IFM:
 	case DHCP_REQ: // Request
-		client->DHCP_CLIENT.SetDHCPMessageType((t == DHCP_REQ) ? DHCP_REQ : DHCP_IFM);
+		client->dhcp->SetMessageType((t == DHCP_REQ) ? DHCP_REQ : DHCP_IFM);
 		return DHCP_ACK;
 	default:
 		return DHCP_OFF;
@@ -57,15 +57,15 @@ void extString(const char* buf, size_t size, char* out)
 	strncpy(out, buf, size - 1);
 }
 
-ServerType GetClientType(Client* client, Packet* packet, ServerType type)
+ServerType* GetClientType(Client* client, Packet* packet, ServerType* type)
 {
 	switch ((Packet_OPCode)packet->GetBuffer()[0])
 	{
 	case BOOTREPLY:
 	case BOOTREQUEST:
 		client->SetType(type);
-		client->isWDSRequest = IsWDSPacket(packet,
-			GetOptionOffset(packet, 250));
+		client->dhcp->SetIsWDSRequest(IsWDSPacket(packet,
+			GetOptionOffset(packet, 250)));
 		break;
 	case RISREQUEST:
 	case RISREPLY:
@@ -147,6 +147,7 @@ std::string iso_8859_1_to_utf8(std::string &str)
 		}
 	}
 
+	delete ch;
 	return strOut;
 }
 
@@ -159,164 +160,6 @@ bool FindVendorOpt(const char* Buffer, size_t length, const char* expression)
 			return true;
 
 	return false;
-}
-
-void BuildWDSOptions(Client* client, ServerType type)
-{
-	char* tmpbuffer = new char[4096];
-	ClearBuffer(tmpbuffer, 4096);
-
-	uint8_t* offset = new uint8_t(2);
-	uint8_t* length = new uint8_t(0);
-	uint8_t* option = new uint8_t(0);
-	uint8_t* DHCPend = new uint8_t(0xff);
-	uint8_t* realsize = new uint8_t(0);
-
-	if (client->DHCP_CLIENT.WDS.GetNextAction() == REFERRAL && client->DHCP_CLIENT.WDS.GetReferralServer() == 0)
-		client->DHCP_CLIENT.WDS.SetNextAction(APPROVAL);
-
-	// Next Action
-	*option = WDSBP_OPT_NEXT_ACTION;
-	*length = (uint8_t)sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &client->DHCP_CLIENT.WDS.NextAction, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	// RequestID
-	*option = WDSBP_OPT_REQUEST_ID;
-	*length = (uint8_t)sizeof(uint32_t);
-
-	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	uint32_t* reqid = new uint32_t(BS32(client->DHCP_CLIENT.WDS.GetRequestID()));
-	memcpy(&tmpbuffer[*offset], &reqid, sizeof(uint32_t));
-	*offset += sizeof(uint32_t);
-	delete reqid;
-
-	// Poll Interval
-	*option = WDSBP_OPT_POLL_INTERVAL;
-	*length = (uint8_t)sizeof(uint16_t);
-
-	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &client->DHCP_CLIENT.WDS.PollIntervall, sizeof(uint16_t));
-	*offset += sizeof(uint16_t);
-
-	// Poll Retry Count
-	*option = WDSBP_OPT_POLL_RETRY_COUNT;
-	*length = (uint8_t)sizeof(uint16_t);
-
-	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &client->DHCP_CLIENT.WDS.RetryCount, sizeof(uint16_t));
-	*offset += sizeof(uint16_t);
-
-	if (client->DHCP_CLIENT.WDS.GetNextAction() == REFERRAL &&
-		client->DHCP_CLIENT.WDS.GetReferralServer() != 0)
-	{
-		if (client->DHCP_CLIENT.WDS.ServerSelection)
-		{
-
-			// Allow Server selection
-			*option = WDSBP_OPT_ALLOW_SERVER_SELECTION;
-			*length = (uint8_t)sizeof(uint8_t);
-
-			memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
-			*offset += sizeof(uint8_t);
-
-			memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
-			*offset += sizeof(uint8_t);
-
-			uint8_t* val = new uint8_t(1);
-
-			memcpy(&tmpbuffer[*offset], &val, sizeof(uint8_t));
-			*offset += sizeof(uint8_t);
-
-			delete val;
-		}
-
-		// Referal Server
-		*option = WDSBP_OPT_REFERRAL_SERVER;
-		*length = (uint8_t)sizeof(uint32_t);
-
-		memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
-		*offset += sizeof(uint8_t);
-
-		memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
-		*offset += sizeof(uint8_t);
-
-		uint32_t* ipaddr = new uint32_t(client->DHCP_CLIENT.WDS.GetReferralServer());
-
-		memcpy(&tmpbuffer[*offset], &ipaddr, sizeof(uint32_t));
-		*offset += sizeof(uint32_t);
-
-		delete ipaddr;
-	}
-
-	// Action Done
-	*option = WDSBP_OPT_ACTION_DONE;
-	*length = (uint8_t)sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	memcpy(&tmpbuffer[*offset], &client->DHCP_CLIENT.WDS.ActionDone, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-
-	if (client->DHCP_CLIENT.WDS.GetWDSMessage().size() != 0)
-	{
-		// Admin Message
-		*option = WDSBP_OPT_MESSAGE;
-		*length = (uint8_t)client->DHCP_CLIENT.WDS.GetWDSMessage().size();
-
-		memcpy(&tmpbuffer[*offset], &option, sizeof(uint8_t));
-		*offset += sizeof(uint8_t);
-
-		memcpy(&tmpbuffer[*offset], &length, sizeof(uint8_t));
-		*offset += sizeof(uint8_t);
-
-		strncpy(&tmpbuffer[*offset], client->DHCP_CLIENT.WDS.GetWDSMessage().c_str(), \
-			client->DHCP_CLIENT.WDS.GetWDSMessage().size() + 1);
-
-		*offset += (uint8_t)client->DHCP_CLIENT.WDS.GetWDSMessage().size() + 1;
-	}
-
-	memcpy(&tmpbuffer[*offset], &DHCPend, sizeof(uint8_t));
-	*offset += sizeof(uint8_t);
-
-	tmpbuffer[0] = (uint8_t)250;
-	tmpbuffer[0] = (uint8_t)*offset;
-	
-	client->Data->Write(tmpbuffer, *offset);
-
-	delete[] tmpbuffer;
-	delete[] offset;
-	delete[] realsize;
-	delete[] length;
-	delete[] option;
-	delete[] DHCPend;
 }
 
 void handle_args(int data_len, char* Data[])

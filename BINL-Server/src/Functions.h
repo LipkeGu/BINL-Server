@@ -17,12 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 const char* hostname_to_ip(const char* hostname);
 uint32_t IP2Bytes(const char* address);
-DHCPMsgTypes GetDHCPMessageType(Client* client, Packet* packet, ServerType type);
+DHCPMsgTypes GetDHCPMessageType(Client* client, Packet* packet, ServerType* type);
 size_t GetOptionOffset(Packet* packet, uint8_t option);
 bool IsWDSPacket(Packet* packet, size_t offset);
 bool FindVendorOpt(const char* Buffer, size_t length, const char* expression);
-ServerType GetClientType(Client* client, Packet* packet, ServerType type);
-void BuildWDSOptions(Client* client, ServerType type);
+ServerType* GetClientType(Client* client, Packet* packet, ServerType* type);
 void extString(const char* buf, size_t size, char* out);
 std::string replace(std::string& str, const std::string& from, const std::string& to);
 std::string iso_8859_1_to_utf8(std::string &str);

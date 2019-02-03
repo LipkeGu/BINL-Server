@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <sstream>
 #include <vector>
+#include <memory>
 
 #ifdef _DEBUG
 	#ifndef DEBUG
@@ -77,7 +78,6 @@ typedef int SOCKET;
 #define BINLSERVER	1
 
 #include "Defines.h"
-#include "FileSystem.h"
 #include "Packet.h"
 #include "Client.h"
 #include "Functions.h"

@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 class Server
 {
 public:
-	Server(uint16_t port, ServerType type, uint32_t ip);
+	Server(uint16_t port, ServerType* type, uint32_t ip);
 	~Server();
 
 	char* Hostname;
@@ -28,5 +28,5 @@ private:
 #endif
 	Connection* Srvsocket;
 	uint32_t ServerIP;
-	ServerType servertype;
+	ServerType* servertype;
 };
