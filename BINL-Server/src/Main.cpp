@@ -20,7 +20,7 @@ DWORD WINAPI DHCP_Thread(void* threadArgs)
 void* DHCP_Thread(void* threadArgs)
 #endif
 {
-	_dhcp = new Server(67, std::unique_ptr<ServerType>(new ServerType(TYPE_DHCP)).get(), (uint32_t)threadArgs);
+	_dhcp = new Server(67, std::unique_ptr<ServerType>(new ServerType(TYPE_DHCP)).get(), *((uint32_t *)threadArgs));
 	
 	delete _dhcp;
 	return 0;
@@ -32,7 +32,7 @@ DWORD WINAPI TFTP_Thread(void* threadArgs)
 void* TFTP_Thread(void* threadArgs)
 #endif
 {
-	_tftp = new Server(69, std::unique_ptr<ServerType>(new ServerType(TYPE_TFTP)).get(), (uint32_t)threadArgs);
+	_tftp = new Server(69, std::unique_ptr<ServerType>(new ServerType(TYPE_TFTP)).get(), *((uint32_t *)threadArgs));
 
 	delete _tftp;
 	return 0;

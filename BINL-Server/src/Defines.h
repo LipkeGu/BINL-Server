@@ -294,82 +294,82 @@ typedef struct WDS {
 		delete this->ServerSelection;
 	}
 
-	std::string WDS::GetBCDfile()
+	std::string GetBCDfile()
 	{
 		return *this->bcdfile;
 	}
 
-	void WDS::SetReferralServer(uint32_t addr)
+	void SetReferralServer(uint32_t addr)
 	{
 		*this->referalIP = addr;
 	}
 
-	uint32_t WDS::GetReferalServer()
+	uint32_t GetReferalServer()
 	{
 		return *this->referalIP;
 	}
 
-	void WDS::SetRequestID(uint32_t id)
+	void SetRequestID(uint32_t id)
 	{
 		*this->requestid = id;
 	}
 
-	uint32_t WDS::GetRequestID()
+	uint32_t GetRequestID()
 	{
 		return *this->requestid;
 	}
 
-	void WDS::SetActionDone(const unsigned char& done)
+	void SetActionDone(const unsigned char& done)
 	{
 		this->ActionDone;
 	}
 
-	unsigned char& WDS::GetActionDone()
+	unsigned char& GetActionDone()
 	{
 		return *this->ActionDone;
 	}
 
-	void WDS::SetWDSMessage(std::string message)
+	void SetWDSMessage(std::string message)
 	{
 		*this->AdminMessage = message;
 	}
 
-	std::string WDS::GetWDSMessage()
+	std::string GetWDSMessage()
 	{
 		return *this->AdminMessage;
 	}
 
-	void WDS::SetNextAction(WDSNBP_OPTION_NEXTACTION action)
+	void SetNextAction(WDSNBP_OPTION_NEXTACTION action)
 	{
 		*this->NextAction = action;
 	}
 
-	uint8_t WDS::GetNextAction()
+	uint8_t GetNextAction()
 	{
 		return *this->NextAction;
 	}
 
-	void WDS::SetRetryCount(uint16_t action)
+	void SetRetryCount(uint16_t action)
 	{
 		*this->RetryCount = action;
 	}
 
-	uint16_t WDS::GetRetryCount()
+	uint16_t GetRetryCount()
 	{
 		return *this->RetryCount;
 	}
 
-	void WDS::SetPollInterval(uint16_t interval)
+	void SetPollInterval(uint16_t interval)
 	{
 		*this->PollIntervall = interval;
 	}
 
-	uint16_t WDS::GetPollInterval()
+	uint16_t GetPollInterval()
 	{
 		return *this->PollIntervall;
 	}
 
-	void WDS::SetBCDfile(std::string file)
+	void SetBCDfile(std::string file)
 	{
 		*this->bcdfile = file;
 	}
@@ -409,52 +409,52 @@ typedef struct DHCP_CLIENT
 		delete this->isWDSRequest;
 	}
 
-	void DHCP_CLIENT::SetNextServer(uint32_t ip)
+	void SetNextServer(uint32_t ip)
 	{
 		*this->NextServer = ip;
 	}
 
-	uint32_t DHCP_CLIENT::GetNextServer()
+	uint32_t GetNextServer()
 	{
 		return *this->NextServer;
 	}
 
-	void DHCP_CLIENT::SetMessageType(uint8_t type)
+	void SetMessageType(uint8_t type)
 	{
 		*this->msgtype = type;
 	}
 
-	uint8_t DHCP_CLIENT::GetMessageType()
+	uint8_t GetMessageType()
 	{
 		return *this->msgtype;
 	}
 
-	void DHCP_CLIENT::SetBootfile(std::string file)
+	void SetBootfile(std::string file)
 	{
 		*this->bootfile = file;
 	}
 
-	uint16_t DHCP_CLIENT::GetArchitecture()
+	uint16_t GetArchitecture()
 	{
 		return *this->arch;
 	}
 
-	void DHCP_CLIENT::SetArchitecture(CLIENT_ARCH arch)
+	void SetArchitecture(CLIENT_ARCH arch)
 	{
 		*this->arch = arch;
 	}
 	
-	bool DHCP_CLIENT::GetIsWDSRequest()
+	bool GetIsWDSRequest()
 	{
 		return *this->isWDSRequest;
 	}
 
-	void DHCP_CLIENT::SetIsWDSRequest(bool is)
+	void SetIsWDSRequest(bool is)
 	{
 		*this->isWDSRequest = is;
 	}
 
-	std::string DHCP_CLIENT::GetBootfile(CLIENT_ARCH arch)
+	std::string GetBootfile(CLIENT_ARCH arch)
 	{
 		switch (arch)
 		{
@@ -507,77 +507,77 @@ private:
 
 typedef struct TFTP_CLIENT
 {
-	void TFTP_CLIENT::SetTFTPState(uint8_t state)
+	void SetTFTPState(uint8_t state)
 	{
 		*this->tftp_state = state;
 	}
 
-	uint8_t TFTP_CLIENT::GetTFTPState()
+	uint8_t GetTFTPState()
 	{
 		return *this->tftp_state;
 	}
 
-	void TFTP_CLIENT::SetBlock()
+	void SetBlock()
 	{
 		this->block = this->block + 1;
 	}
 
-	void TFTP_CLIENT::SetBlock(uint16_t block)
+	void SetBlock(uint16_t block)
 	{
 		*this->block = block;
 	}
 
-	uint16_t TFTP_CLIENT::GetWindowSize()
+	uint16_t GetWindowSize()
 	{
 		return *this->windowsize;
 	}
 
-	void TFTP_CLIENT::SetWindowSize(uint16_t window)
+	void SetWindowSize(uint16_t window)
 	{
 		*this->windowsize = window;
 	}
 
-	uint16_t TFTP_CLIENT::GetBlockSize()
+	uint16_t GetBlockSize()
 	{
 		return *this->blocksize;
 	}
 
-	void TFTP_CLIENT::SetBlockSize(uint16_t blocksize)
+	void SetBlockSize(uint16_t blocksize)
 	{
 		*this->blocksize = blocksize;
 	}
 
-	uint16_t TFTP_CLIENT::GetMSFTWindow()
+	uint16_t GetMSFTWindow()
 	{
 		return *this->msftwindow;
 	}
 
-	void TFTP_CLIENT::SetMSFTWindow(uint16_t window)
+	void SetMSFTWindow(uint16_t window)
 	{
 		*this->msftwindow = window;
 	}
 
-	uint16_t TFTP_CLIENT::GetBlock()
+	uint16_t GetBlock()
 	{
 		return *this->block;
 	}
 
-	long TFTP_CLIENT::GetBytesToRead()
+	long GetBytesToRead()
 	{
 		return *this->bytesToRead;
 	}
 
-	void TFTP_CLIENT::SetBytesToRead(long bytes)
+	void SetBytesToRead(long bytes)
 	{
 		*this->bytesToRead = bytes;
 	}
 
-	long TFTP_CLIENT::GetBytesRead()
+	long GetBytesRead()
 	{
 		return *this->bytesread;
 	}
 
-	void TFTP_CLIENT::SetBytesRead(long bytes)
+	void SetBytesRead(long bytes)
 	{
 		if (bytes == 0)
 			*this->bytesread = bytes;
@@ -585,12 +585,12 @@ typedef struct TFTP_CLIENT
 			*this->bytesread += bytes;
 	}
 
-	std::string TFTP_CLIENT::GetFilename()
+	std::string GetFilename()
 	{
 		return *this->filename;
 	}
 
-	void TFTP_CLIENT::SetFilename(std::string& filename)
+	void SetFilename(std::string& filename)
 	{
 		*this->filename = filename;
 	}

@@ -28,7 +28,7 @@ public:
 	std::string ResolvePath(std::string& path);
 	void Handle_Request(ServerType* type, sockaddr_in& remote, const char* buffer, size_t length);
 	Client* Get_Client(ServerType* type, sockaddr_in& remote, Packet* packet);
-	void Connection::RemoveClient(std::string& id);
+	void RemoveClient(std::string& id);
 	void Handle_RRQ_Request(Client* client, Packet* packet, ServerType* type);
 	void Handle_ACK_Request(Client* client, Packet* packet, ServerType* type);
 	void Handle_ERR_Request(Client* client, Packet* packet, ServerType* type);
