@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -pthread -pedantic -Wall
+CXXFLAGS = -std=c++11 -pthread
 all: binlsvc
 
 binlsvc: clean main.o Client.o Connection.o Packet.o Functions.o Server.o
